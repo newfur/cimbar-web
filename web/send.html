@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="zh-CN" data-framework="javascript">
+<head>
+  <title>Cimbar 文件发送端</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no">
+  <link rel="manifest" href="pwa.2026-05-09T0146.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #fbfbfe 0%, #f3f0fa 50%, #e8e2f7 100%);
+      --text-main: #232154;
+      --text-muted: #6e6b8f;
+      --accent-cyan: #4f46e5;
+      --accent-purple: #7c3aed;
+      --accent-purple-glow: rgba(124, 58, 237, 0.15);
+      --accent-cyan-glow: rgba(79, 70, 229, 0.15);
+      --glass-bg: rgba(255, 255, 255, 0.75);
+      --glass-border: rgba(124, 58, 237, 0.12);
+      --glass-hover-border: rgba(124, 58, 237, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.4s ease-in;
+      margin: 0;
+      position: relative;
+    }
+
+    /* Ambient background glows */
+    .glow-sphere {
+      position: absolute;
+      width: 350px;
+      height: 350px;
+      border-radius: 50%;
+      filter: blur(100px);
+      z-index: -1;
+      opacity: 0.35;
+      pointer-events: none;
+    }
+    .glow-cyan {
+      top: 5%;
+      left: 10%;
+      background: var(--accent-cyan);
+    }
+    .glow-purple {
+      bottom: 5%;
+      right: 10%;
+      background: var(--accent-purple);
+    }
+
+    /* Home navigation button */
+    .btn-home {
+      position: fixed;
+      top: max(20px, env(safe-area-inset-top));
+      left: max(20px, env(safe-area-inset-left));
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid var(--glass-border);
+      color: var(--text-main);
+      padding: 0.6rem 1.2rem;
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.05);
+    }
+    
+    .btn-home:hover {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(124, 58, 237, 0.25);
+      transform: translateX(-3px);
+    }
+
+    #status {
+      display: none;
+    }
+
+    /* Decoupled, perfectly centered canvas barcode */
+    #canvas {
+      display: block;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: 12px;
+      box-shadow: 0 20px 50px rgba(124, 58, 237, 0.1);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      z-index: 5;
+      margin: 0 auto;
+    }
+
+    #canvas.active {
+      opacity: 1;
+      pointer-events: auto;
+      cursor: none;
+    }
+
+    /* Drag Drop Container */
+    #dragdrop {
+      background: var(--glass-bg);
+      border: 2px dashed rgba(124, 58, 237, 0.3);
+      border-radius: 24px;
+      padding: 4rem 2rem;
+      width: 450px;
+      max-width: 90vw;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 15px 35px rgba(124, 58, 237, 0.05);
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 250px;
+      z-index: 2;
+    }
+
+    #dragdrop:hover {
+      border-color: var(--accent-purple);
+      box-shadow: 0 20px 45px rgba(124, 58, 237, 0.1);
+      transform: translateY(-5px);
+    }
+
+    #dragdrop.hidden {
+      display: none !important;
+    }
+
+    .dragdrop::before {
+      content: "" !important;
+      display: none;
+    }
+
+    .dragdrop-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .dragdrop-icon {
+      width: 64px;
+      height: 64px;
+      color: var(--accent-purple);
+      background: rgba(124, 58, 237, 0.08);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(124, 58, 237, 0.15);
+    }
+
+    .dragdrop-text {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text-main);
+    }
+
+    .dragdrop-subtext {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 300;
+    }
+
+    .dragdrop.error {
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.02);
+    }
+    
+    .dragdrop.error .dragdrop-icon {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.08);
+    }
+
+
+
+    /* Mode button styles in navbar */
+    #nav-container a.mode-b,
+    #nav-container a.mode-bm,
+    #nav-container a.mode-bu,
+    #nav-container a.mode-4c {
+      color: rgba(35, 33, 84, 0.4);
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      text-decoration: none;
+    }
+
+    #nav-container.mode-b a.mode-b,
+    #nav-container.mode-bm a.mode-bm,
+    #nav-container.mode-bu a.mode-bu,
+    #nav-container.mode-4c a.mode-4c {
+      color: var(--accent-purple) !important;
+      background: rgba(124, 58, 237, 0.08);
+      border-color: rgba(124, 58, 237, 0.2);
+    }
+
+    /* Drawer Styles */
+    #nav-container {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    #nav-container .bg {
+      pointer-events: auto;
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      visibility: hidden;
+      opacity: 0;
+      transition: .3s;
+      background: rgba(35, 33, 84, 0.2);
+      backdrop-filter: blur(4px);
+    }
+
+    #nav-container.open .bg {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    #nav-container * {
+      visibility: visible;
+    }
+
+    /* Floating hamburger icon */
+    #nav-button {
+      position: fixed;
+      top: max(20px, env(safe-area-inset-top));
+      left: auto;
+      right: max(20px, env(safe-area-inset-right));
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 48px;
+      width: 48px;
+      border-radius: 12px;
+      cursor: pointer;
+      pointer-events: auto;
+      touch-action: manipulation;
+      border: 1px solid var(--glass-border);
+      outline: 0;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: all 0.3s;
+      z-index: 25;
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.05);
+    }
+
+    #nav-button:hover {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: var(--glass-hover-border);
+    }
+
+    .icon-bar {
+      display: block;
+      width: 20px;
+      height: 2px;
+      transition: .3s;
+      border-radius: 1px;
+    }
+
+    .icon-bar+.icon-bar {
+      margin-top: 4px;
+    }
+
+    #nav-container .icon-bar:nth-of-type(1) { background-color: var(--accent-cyan); }
+    #nav-container .icon-bar:nth-of-type(2) { background-color: #eab308; }
+    #nav-container .icon-bar:nth-of-type(3) { background-color: #10b981; }
+    #nav-container .icon-bar:nth-of-type(4) { background-color: var(--accent-purple); }
+
+    #nav-container.open #nav-button {
+      border-color: var(--glass-hover-border);
+      background: rgba(255,255,255,0.9);
+    }
+
+    #nav-container.open .icon-bar {
+      background-color: var(--text-main);
+    }
+
+    #nav-container.open .icon-bar:nth-of-type(1) {
+      transform: translate3d(0, 7px, 0) rotate(45deg);
+    }
+
+    #nav-container.open .icon-bar:nth-of-type(2),
+    #nav-container.open .icon-bar:nth-of-type(3) {
+      opacity: 0;
+    }
+
+    #nav-container.open .icon-bar:nth-of-type(4) {
+      transform: translate3d(0, -5px, 0) rotate(-45deg);
+    }
+
+    /* Styled Settings Content Drawer */
+    #nav-content {
+      padding: 6rem 2.5rem 3rem 2.5rem;
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+      width: 320px;
+      max-width: 85vw;
+      background: rgba(255, 255, 255, 0.95);
+      border-left: 1px solid var(--glass-border);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      pointer-events: auto;
+      transform: translateX(100%);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      z-index: 22;
+      box-shadow: -10px 0 30px rgba(124, 58, 237, 0.05);
+    }
+
+    #nav-container.open #nav-content {
+      transform: translateX(0);
+    }
+
+    #current-file {
+      display: block;
+      color: var(--text-main);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+      word-break: break-all;
+      background: rgba(124, 58, 237, 0.03);
+      padding: 0.8rem;
+      border-radius: 12px;
+      border: 1px solid var(--glass-border);
+      text-align: center;
+    }
+
+    #nav-content ul {
+      display: flex;
+      flex-direction: column;
+      list-style: none;
+      gap: 1.5rem;
+      height: 100%;
+    }
+
+    #nav-content hr {
+      border: none;
+      border-top: 1px solid var(--glass-border);
+      margin: 0.5rem 0;
+    }
+
+    #nav-content li a {
+      display: block;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 1.1rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    #nav-content li a:hover {
+      color: var(--text-main);
+    }
+
+    #nav-content li a.attention {
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    #nav-content h4 {
+      color: var(--text-main);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.8rem;
+      font-weight: 600;
+    }
+
+    .modesel {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modes-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    /* Slider styling */
+    .range {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(124, 58, 237, 0.15);
+      outline: none;
+    }
+
+    .range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--accent-cyan-glow);
+      transition: transform 0.2s;
+    }
+
+    .range::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    #nav-content li.small {
+      margin-top: auto;
+    }
+    
+    #nav-content li.small-link {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    
+    #nav-content li.small-link a {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    #nav-content li.small-link a:hover {
+      color: var(--text-main);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="glow-sphere glow-cyan"></div>
+  <div class="glow-sphere glow-purple"></div>
+
+  <!-- Back to portal -->
+  <a href="index.html" class="btn-home">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+    </svg>
+    返回大厅
+  </a>
+
+  <div id="status">准备就绪</div>
+
+  <!-- Styled Drag-Drop Area -->
+  <div id="dragdrop" class="dragdrop" title="拖拽或选择本地文件">
+    <div class="dragdrop-content">
+      <div class="dragdrop-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+      </div>
+      <div class="dragdrop-text">拖拽文件到此处</div>
+      <div class="dragdrop-subtext">或者点击选择本地文件</div>
+    </div>
+  </div>
+
+  <!-- Decoupled perfectly centered canvas barcode -->
+  <canvas id="canvas" class="canvas" onclick="Main.clickNav()"></canvas>
+
+  <input style="display:none;" type="file" name="file_input" id="file_input" onchange="Main.fileInput(this);" />
+
+  <!-- Styled Settings Drawer -->
+  <div id="nav-container" class="mode-b">
+    <div class="bg" onclick="Main.blurNav();"></div>
+    <button id="nav-button" tabindex="0" onclick="Main.clickNav();">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </button>
+    <div id="nav-content" tabindex="-1">
+      <span id="current-file">未选择任何文件</span>
+      <ul>
+        <li>
+          <a class="attention" id="nav-find-file-link" href="javascript:void(0)" onclick="Main.clickFileInput()">选择本地文件</a>
+        </li>
+        <hr>
+        <li class="modesel">
+          <h4>编码模式</h4>
+          <div class="modes-grid">
+            <a class="mode-b" href="javascript:void(0)" onclick="Main.setMode('B')">B</a>
+            <a class="mode-bm" href="javascript:void(0)" onclick="Main.setMode('Bm')">Bm</a>
+            <a class="mode-bu" href="javascript:void(0)" onclick="Main.setMode('Bu')">Bu</a>
+            <a class="mode-4c" href="javascript:void(0)" onclick="Main.setMode('4C')">4C</a>
+          </div>
+        </li>
+        <li>
+          <h4>发送帧率 (FPS)</h4>
+          <input type="range" class="range" min="5" max="20" step="5" value="15" oninput="Main.setFPS(this.value)" onchange="Main.setFPS(this.value)" />
+        </li>
+        <li class="small-link"><a href="javascript:void(0)" onclick="Main.toggleFullscreen()">全屏展示模式</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Inline Script 1: Pre-load Module for Emscripten WASM initialization -->
+  <script type="text/javascript">
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js');
+    }
+    
+    var canvas = document.getElementById('canvas');
+
+    var Module = {};
+    Module.canvas = canvas;
+    Module.onRuntimeInitialized = () => {
+      Main.init(canvas);
+      Main.nextFrame();
+    };
+  </script>
+
+  <!-- Load Cimbar Scripts (Main is declared here) -->
+  <script src="cimbar_js.2026-05-09T0146.js"></script>
+  <script src="main.2026-05-09T0146.js"></script>
+
+  <!-- Inline Script 2: Handle custom interactions safely using Main -->
+  <script type="text/javascript">
+    const dragdrop = document.getElementById('dragdrop');
+    const currentFile = document.getElementById('current-file');
+    
+    // Tap to open file picker (only when canvas is not active)
+    dragdrop.addEventListener('click', (e) => {
+      if (canvas.classList.contains('active')) return;
+      Main.clickFileInput();
+    });
+
+    // Override Main.blurNav to remove .open class
+    Main.blurNav = function (pause) {
+      document.getElementById("nav-container").classList.remove("open");
+    };
+
+    // Override Main.clickNav to toggle .open class
+    Main.clickNav = function () {
+      document.getElementById("nav-container").classList.toggle("open");
+    };
+
+    // Disable the overlap check since our settings icon is in the top-right and doesn't conflict
+    Main.checkNavButtonOverlap = function () {};
+
+    // Close settings when a settings link or option is clicked to improve UX
+    const menuLinks = document.getElementById('nav-content').getElementsByTagName('a');
+    for (let link of menuLinks) {
+      if (link.id !== 'nav-find-file-link') {
+        link.addEventListener('click', () => {
+          setTimeout(() => Main.blurNav(), 100);
+        });
+      }
+    }
+
+    // Observer to detect when file is loaded and transition views smoothly
+    const observer = new MutationObserver(() => {
+      const fileName = currentFile.textContent;
+      if (fileName && fileName !== 'No file selected' && fileName !== '未选择任何文件') {
+        // Hide drop placeholder entirely, fade in canvas
+        dragdrop.classList.add('hidden');
+        canvas.classList.add('active');
+      }
+    });
+    observer.observe(currentFile, { childList: true, characterData: true, subtree: true });
+  </script>
+
+</body>
+</html>

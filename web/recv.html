@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="zh-CN" data-framework="javascript">
+<head>
+  <title>Cimbar 文件接收端</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no">
+  <link rel="manifest" href="pwa-recv.2026-05-09T0146.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #fbfbfe 0%, #f3f0fa 50%, #e8e2f7 100%);
+      --text-main: #232154;
+      --text-muted: #6e6b8f;
+      --accent-cyan: #4f46e5;
+      --accent-purple: #7c3aed;
+      --accent-green: #10b981;
+      --accent-yellow: #d97706;
+      --glass-bg: rgba(255, 255, 255, 0.75);
+      --glass-border: rgba(124, 58, 237, 0.12);
+      --glass-hover-border: rgba(124, 58, 237, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100dvh;
+      overflow: hidden;
+      background-color: #fbfbfe;
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-main);
+    }
+
+    #container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: calc(100vmin - 10px);
+      height: calc(100vmin - 10px);
+      border-radius: 28px;
+      overflow: hidden;
+      border: 4px solid var(--glass-border);
+      box-shadow: 0 20px 50px rgba(124, 58, 237, 0.15);
+      z-index: 2;
+      background: #000;
+    }
+
+    video {
+      height: 100%;
+      width: 100%;
+      object-fit: cover;
+      transition: 1s opacity;
+    }
+
+    /* Target overlay corner crosshairs */
+    .crosshairs {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      z-index: 10;
+      border: 4px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 0 15px rgba(124, 58, 237, 0.1);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    /* Top Right Corner */
+    #crosshair1 {
+      position: absolute;
+      border-left: none !important;
+      border-bottom: none !important;
+      border-top-right-radius: 12px;
+    }
+
+    /* Bottom Left Corner */
+    #crosshair2 {
+      position: absolute;
+      border-right: none !important;
+      border-top: none !important;
+      border-bottom-left-radius: 12px;
+    }
+
+    /* Scanner states */
+    .crosshairs.scanning_xhairs {
+      border-color: var(--accent-yellow) !important;
+      box-shadow: 0 0 20px rgba(217, 119, 6, 0.6);
+      transform: scale(1.1);
+    }
+
+    .crosshairs.active_xhairs {
+      border-color: var(--accent-green) !important;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.8);
+      transform: scale(1.15);
+    }
+
+    /* Top menu floating panels */
+    .btn-home {
+      position: fixed;
+      top: max(20px, env(safe-area-inset-top));
+      left: max(20px, env(safe-area-inset-left));
+      z-index: 15;
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid var(--glass-border);
+      color: var(--text-main);
+      padding: 0.6rem 1.2rem;
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(124, 58, 237, 0.05);
+    }
+    
+    .btn-home:hover {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(124, 58, 237, 0.25);
+      transform: translateX(-3px);
+    }
+
+    /* Nav Button settings */
+    #nav-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    #nav-container .bg {
+      pointer-events: auto;
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      visibility: hidden;
+      opacity: 0;
+      transition: .3s;
+      background: rgba(35, 33, 84, 0.2);
+      backdrop-filter: blur(4px);
+    }
+
+    #nav-container.open .bg {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    #nav-container * {
+      visibility: visible;
+    }
+
+    #nav-button {
+      position: fixed;
+      top: max(20px, env(safe-area-inset-top));
+      right: max(20px, env(safe-area-inset-right));
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 44px;
+      width: 44px;
+      border-radius: 12px;
+      cursor: pointer;
+      pointer-events: auto;
+      touch-action: manipulation;
+      border: 1px solid var(--glass-border);
+      outline: 0;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      transition: all 0.3s;
+      z-index: 25;
+      box-shadow: 0 4px 20px rgba(124, 58, 237, 0.05);
+    }
+
+    #nav-button:hover {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: var(--glass-hover-border);
+    }
+
+    .icon-bar {
+      display: block;
+      width: 18px;
+      height: 2px;
+      transition: .3s;
+      border-radius: 1px;
+    }
+
+    .icon-bar+.icon-bar {
+      margin-top: 4px;
+    }
+
+    #nav-container .icon-bar:nth-of-type(1) { background-color: var(--accent-cyan); }
+    #nav-container .icon-bar:nth-of-type(2) { background-color: var(--accent-yellow); }
+    #nav-container .icon-bar:nth-of-type(3) { background-color: var(--accent-green); }
+    #nav-container .icon-bar:nth-of-type(4) { background-color: var(--accent-purple); }
+
+    #nav-container.open #nav-button {
+      border-color: var(--glass-hover-border);
+    }
+
+    #nav-container.open .icon-bar {
+      background-color: var(--text-main);
+    }
+
+    #nav-container.open .icon-bar:nth-of-type(1) {
+      transform: translate3d(0, 6px, 0) rotate(45deg);
+    }
+
+    #nav-container.open .icon-bar:nth-of-type(2),
+    #nav-container.open .icon-bar:nth-of-type(3) {
+      opacity: 0;
+    }
+
+    #nav-container.open .icon-bar:nth-of-type(4) {
+      transform: translate3d(0, -6px, 0) rotate(-45deg);
+    }
+
+    /* Styled Settings Drawer */
+    #nav-content {
+      padding: 6rem 2.5rem 3rem 2.5rem;
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+      width: 300px;
+      max-width: 85vw;
+      background: rgba(255, 255, 255, 0.95);
+      border-left: 1px solid var(--glass-border);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      pointer-events: auto;
+      transform: translateX(100%);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      z-index: 22;
+      box-shadow: -10px 0 30px rgba(124, 58, 237, 0.05);
+    }
+
+    #nav-container.open #nav-content {
+      transform: translateX(0);
+    }
+
+    #nav-content ul {
+      display: flex;
+      flex-direction: column;
+      list-style: none;
+      gap: 1.5rem;
+    }
+
+    #nav-content hr {
+      border: none;
+      border-top: 1px solid var(--glass-border);
+      margin: 0.5rem 0;
+    }
+
+    #nav-content h4 {
+      color: var(--text-main);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.8rem;
+      font-weight: 600;
+    }
+
+    .modesel {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modes-flex {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    #nav-content li a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 1.05rem;
+      transition: all 0.2s;
+    }
+
+    #nav-content li a:hover {
+      color: var(--text-main);
+    }
+
+    /* Mode button anchors */
+    #nav-container a.mode-auto,
+    #nav-container a.mode-b {
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: rgba(124, 58, 237, 0.03);
+      text-decoration: none;
+    }
+
+    #nav-container.mode-auto a.mode-auto,
+    #nav-container.mode-b a.mode-b {
+      color: var(--accent-purple) !important;
+      background: rgba(124, 58, 237, 0.08);
+      border-color: rgba(124, 58, 237, 0.2);
+    }
+
+    /* Debug menu dashboard overlays */
+    #debug_menu {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      width: 280px;
+      padding: 1.2rem;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      z-index: 15;
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transform: scale(0.9);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 32px rgba(124, 58, 237, 0.05);
+    }
+
+    #debug_menu.visible {
+      visibility: visible;
+      pointer-events: auto;
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    #debug-button {
+      display: none;
+    }
+
+    .statusbox {
+      color: var(--text-main);
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(124, 58, 237, 0.05);
+      padding-bottom: 2px;
+    }
+
+    .statusbox::before {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    #errorbox { color: #ef4444; word-break: break-all; }
+    #tdec { color: var(--accent-cyan); }
+    #framesInFlight { color: var(--accent-yellow); }
+
+    /* Progress Overlay */
+    #progress_bars {
+      position: fixed;
+      bottom: 25px;
+      left: 20px;
+      right: 20px;
+      z-index: 15;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .progress {
+      display: block;
+      height: 10px;
+      background: linear-gradient(90deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+      box-shadow: 0 0 10px rgba(79, 70, 229, 0.2);
+      border-radius: 5px;
+      width: 0;
+      max-width: 100%;
+      transition: width 0.15s cubic-bezier(0.1, 0.8, 0.25, 1);
+    }
+
+    /* Focus Ring style for camera manual refocus */
+    .focus-ring {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      border: 2px dashed var(--accent-purple);
+      border-radius: 50%;
+      transform: translate(-50%, -50%) scale(1.5);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 99;
+      animation: focus-ring-anim 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    @keyframes focus-ring-anim {
+      0% {
+        transform: translate(-50%, -50%) scale(2);
+        opacity: 0;
+      }
+      30% {
+        opacity: 1;
+        border-style: solid;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      80% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Camera Stream Viewfinder -->
+  <div id="container">
+    <video id="video" autoplay="true" playsinline="true" muted="true"></video>
+    <!-- Target bracket overlay corner points inside container -->
+    <div id="crosshair1" class="crosshairs"></div>
+    <div id="crosshair2" class="crosshairs"></div>
+  </div>
+
+  <!-- Back to portal -->
+  <a href="index.html" class="btn-home">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+    </svg>
+    返回大厅
+  </a>
+
+  <!-- Styled Settings Drawer overlay -->
+  <div id="nav-container" class="mode-auto">
+    <div class="bg" onclick="Recv.blurNav();"></div>
+    <button id="nav-button" tabindex="0" onclick="Recv.clickNav();">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </button>
+    
+    <div id="nav-content" tabindex="-1">
+      <ul>
+
+        <li><a href="javascript:void(0)" onclick="Recv.toggleDebugPanel()">切换调试面板</a></li>
+        <li><a href="javascript:void(0)" onclick="Recv.toggleFullscreen()">全屏接收模式</a></li>
+      </ul>
+    </div>
+
+    <!-- Debug dashboard panel -->
+    <div id="debug_menu">
+      <button id="debug-button" onclick="Recv.showDebug();"></button>
+      <div class="statusbox" id="errorbox">暂无错误</div>
+      <div class="statusbox" id="t0">工作线程 0 空闲</div>
+      <div class="statusbox" id="t1">工作线程 1 空闲</div>
+      <div class="statusbox" id="t2">工作线程 2 空闲</div>
+      <div class="statusbox" id="t3">工作线程 3 空闲</div>
+      <div class="statusbox" id="framesInFlight">0</div>
+      <div class="statusbox" id="tdec">%VERSION%</div>
+    </div>
+  </div>
+
+  <!-- Progress bar container -->
+  <div id="progress_bars">
+    <div class="progress"></div>
+  </div>
+
+  <script src="recv.2026-05-09T0146.js"></script>
+  <script src="zstd.2026-05-09T0146.js"></script>
+
+  <script type="text/javascript">
+    Recv.init_ww(4);
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./recv-sw.js');
+    }
+    var video = document.querySelector('#video');
+
+    var Module = {};
+    Module.onRuntimeInitialized = () => {
+      Recv.init_video(video);
+    };
+
+    // Helper function to toggle debug drawer on/off
+    Recv.toggleDebugPanel = function() {
+      const debugPanel = document.getElementById('debug_menu');
+      if (debugPanel) {
+        debugPanel.classList.toggle('visible');
+      }
+      Recv.blurNav();
+    }
+
+    // Override Recv.blurNav to remove .open class
+    Recv.blurNav = function (pause) {
+      document.getElementById("nav-container").classList.remove("open");
+    };
+
+    // Override Recv.clickNav to toggle .open class
+    Recv.clickNav = function () {
+      document.getElementById("nav-container").classList.toggle("open");
+    };
+
+    // Auto-blur settings when items are clicked to make drawer close nicely
+    const menuLinks = document.getElementById('nav-content').getElementsByTagName('a');
+    for (let link of menuLinks) {
+      link.addEventListener('click', () => {
+        setTimeout(() => Recv.blurNav(), 100);
+      });
+    }
+  </script>
+
+  <script src="cimbar_js.2026-05-09T0146.js"></script>
+
+</body>
+</html>
