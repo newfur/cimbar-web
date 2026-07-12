@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" data-framework="javascript">
+<html lang="zh-CN" data-i18n-title="title_send">
 <head>
   <title>Cimbar 文件发送端</title>
   <meta charset="utf-8">
@@ -475,21 +475,21 @@
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
     </svg>
-    返回大厅
+    <span data-i18n="back_to_hub">返回大厅</span>
   </a>
 
-  <div id="status">准备就绪</div>
+  <div id="status" data-i18n="send_status_ready">准备就绪</div>
 
   <!-- Styled Drag-Drop Area -->
-  <div id="dragdrop" class="dragdrop" title="拖拽或选择本地文件">
+  <div id="dragdrop" class="dragdrop" title="拖拽或选择本地文件" data-i18n="send_dragdrop_title" data-i18n-target="title">
     <div class="dragdrop-content">
       <div class="dragdrop-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
         </svg>
       </div>
-      <div class="dragdrop-text">拖拽文件到此处</div>
-      <div class="dragdrop-subtext">或者点击选择本地文件</div>
+      <div class="dragdrop-text" data-i18n="send_drag_here">拖拽文件到此处</div>
+      <div class="dragdrop-subtext" data-i18n="send_or_click">或者点击选择本地文件</div>
     </div>
   </div>
 
@@ -508,14 +508,14 @@
       <span class="icon-bar"></span>
     </button>
     <div id="nav-content" tabindex="-1">
-      <span id="current-file">未选择任何文件</span>
+      <span id="current-file" data-i18n="send_no_file">未选择任何文件</span>
       <ul>
         <li>
-          <a class="attention" id="nav-find-file-link" href="javascript:void(0)" onclick="Main.clickFileInput()">选择本地文件</a>
+          <a class="attention" id="nav-find-file-link" href="javascript:void(0)" onclick="Main.clickFileInput()" data-i18n="send_select_file">选择本地文件</a>
         </li>
         <hr>
         <li class="modesel">
-          <h4>编码模式</h4>
+          <h4 data-i18n="send_mode">编码模式</h4>
           <div class="modes-grid">
             <a class="mode-b" href="javascript:void(0)" onclick="Main.setMode('B')">B</a>
             <a class="mode-bm" href="javascript:void(0)" onclick="Main.setMode('Bm')">Bm</a>
@@ -524,10 +524,10 @@
           </div>
         </li>
         <li>
-          <h4>发送帧率 (FPS)</h4>
+          <h4 data-i18n="send_fps">发送帧率 (FPS)</h4>
           <input type="range" class="range" min="5" max="20" step="5" value="15" oninput="Main.setFPS(this.value)" onchange="Main.setFPS(this.value)" />
         </li>
-        <li class="small-link"><a href="javascript:void(0)" onclick="Main.toggleFullscreen()">全屏展示模式</a></li>
+        <li class="small-link"><a href="javascript:void(0)" onclick="Main.toggleFullscreen()" data-i18n="fullscreen">全屏展示模式</a></li>
       </ul>
     </div>
   </div>
@@ -547,6 +547,9 @@
       Main.nextFrame();
     };
   </script>
+
+  <!-- Load I18n Script First -->
+  <script src="i18n.js"></script>
 
   <!-- Load Cimbar Scripts (Main is declared here) -->
   <script src="cimbar_js.2026-05-09T0146.js"></script>
@@ -589,7 +592,7 @@
     // Observer to detect when file is loaded and transition views smoothly
     const observer = new MutationObserver(() => {
       const fileName = currentFile.textContent;
-      if (fileName && fileName !== 'No file selected' && fileName !== '未选择任何文件') {
+      if (fileName && fileName !== window.I18n.t('send_no_file')) {
         // Hide drop placeholder entirely, fade in canvas
         dragdrop.classList.add('hidden');
         canvas.classList.add('active');

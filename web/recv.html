@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" data-framework="javascript">
+<html lang="zh-CN" data-framework="javascript" data-i18n-title="title_recv">
 <head>
   <title>Cimbar 文件接收端</title>
   <meta charset="utf-8">
@@ -442,7 +442,7 @@
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
     </svg>
-    返回大厅
+    <span data-i18n="back_to_hub">返回大厅</span>
   </a>
 
   <!-- Styled Settings Drawer overlay -->
@@ -458,19 +458,19 @@
     <div id="nav-content" tabindex="-1">
       <ul>
 
-        <li><a href="javascript:void(0)" onclick="Recv.toggleDebugPanel()">切换调试面板</a></li>
-        <li><a href="javascript:void(0)" onclick="Recv.toggleFullscreen()">全屏接收模式</a></li>
+        <li><a href="javascript:void(0)" onclick="Recv.toggleDebugPanel()" data-i18n="recv_toggle_debug">切换调试面板</a></li>
+        <li><a href="javascript:void(0)" onclick="Recv.toggleFullscreen()" data-i18n="fullscreen">全屏接收模式</a></li>
       </ul>
     </div>
 
     <!-- Debug dashboard panel -->
     <div id="debug_menu">
       <button id="debug-button" onclick="Recv.showDebug();"></button>
-      <div class="statusbox" id="errorbox">暂无错误</div>
-      <div class="statusbox" id="t0">工作线程 0 空闲</div>
-      <div class="statusbox" id="t1">工作线程 1 空闲</div>
-      <div class="statusbox" id="t2">工作线程 2 空闲</div>
-      <div class="statusbox" id="t3">工作线程 3 空闲</div>
+      <div class="statusbox" id="errorbox" data-i18n="recv_status_no_error">暂无错误</div>
+      <div class="statusbox" id="t0">Worker 0 Idle</div>
+      <div class="statusbox" id="t1">Worker 1 Idle</div>
+      <div class="statusbox" id="t2">Worker 2 Idle</div>
+      <div class="statusbox" id="t3">Worker 3 Idle</div>
       <div class="statusbox" id="framesInFlight">0</div>
       <div class="statusbox" id="tdec">%VERSION%</div>
     </div>
@@ -481,6 +481,7 @@
     <div class="progress"></div>
   </div>
 
+  <script src="i18n.js"></script>
   <script src="recv.2026-05-09T0146.js"></script>
   <script src="zstd.2026-05-09T0146.js"></script>
 

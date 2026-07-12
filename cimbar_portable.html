@@ -405,7 +405,29 @@
         transform: translateY(0);
       }
     }
-  
+    /* i18n toggle button */
+  #i18n-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-main);
+    padding: 8px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    backdrop-filter: blur(10px);
+    transition: all 0.2s ease;
+    z-index: 100;
+  }
+  #i18n-toggle:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+  }
+
     
     :root {
       --bg-gradient: linear-gradient(135deg, #fbfbfe 0%, #f3f0fa 50%, #e8e2f7 100%);
@@ -1284,12 +1306,14 @@
 
   <!-- VIEW 1: Portal Hub Landing Page -->
   <div id="view-hub" class="view-container active">
-    <div class="glow-sphere glow-cyan"></div>
+    <button id="i18n-toggle" title="Switch Language">🌐 En</button>
+
+  <div class="glow-sphere glow-cyan"></div>
   <div class="glow-sphere glow-purple"></div>
 
   <header>
-    <h1>Cimbar 传输中心</h1>
-    <p>在浏览器中使用彩色条形码进行完全离线、跨设备的文件传输（无需任何网络连接）</p>
+    <h1 data-i18n="hub_main_title">Cimbar 传输中心</h1>
+    <p data-i18n="hub_subtitle">在浏览器中使用彩色条形码进行完全离线、跨设备的文件传输（无需任何网络连接）</p>
   </header>
 
   <main class="main-container">
@@ -1302,9 +1326,9 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
         </svg>
       </div>
-      <h2>文件发送端</h2>
-      <p>选择一个本地文件，将其编码为在屏幕上播放的动态彩色条形码流（完全离线）。</p>
-      <a href="send.html" class="btn btn-cyan">开始发送</a>
+      <h2 data-i18n="hub_sender">文件发送端</h2>
+      <p data-i18n="hub_sender_desc">选择一个本地文件，将其编码为在屏幕上播放的动态彩色条形码流（完全离线）。</p>
+      <a href="send.html" class="btn btn-cyan" data-i18n="hub_btn_send">开始发送</a>
     </div>
 
     <!-- Receive Card -->
@@ -1316,12 +1340,14 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       </div>
-      <h2>文件接收端</h2>
-      <p>使用设备摄像头扫描屏幕上的动态条形码，实时解码并瞬间下载重组后的文件（完全离线）。</p>
-      <a href="recv.html" class="btn btn-purple">开始接收</a>
+      <h2 data-i18n="hub_receiver">文件接收端</h2>
+      <p data-i18n="hub_receiver_desc">使用设备摄像头扫描屏幕上的动态条形码，实时解码并瞬间下载重组后的文件（完全离线）。</p>
+      <a href="recv.html" class="btn btn-purple" data-i18n="hub_btn_recv">开始接收</a>
     </div>
 
   </main>
+  
+  
   </div>
 
   <!-- VIEW 2: File Transmitter (Sender) -->
@@ -1334,21 +1360,21 @@
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
     </svg>
-    返回大厅
+    <span data-i18n="back_to_hub">返回大厅</span>
   </a>
 
-  <div id="status">准备就绪</div>
+  <div id="status" data-i18n="send_status_ready">准备就绪</div>
 
   <!-- Styled Drag-Drop Area -->
-  <div id="dragdrop" class="dragdrop" title="拖拽或选择本地文件">
+  <div id="dragdrop" class="dragdrop" title="拖拽或选择本地文件" data-i18n="send_dragdrop_title" data-i18n-target="title">
     <div class="dragdrop-content">
       <div class="dragdrop-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
         </svg>
       </div>
-      <div class="dragdrop-text">拖拽文件到此处</div>
-      <div class="dragdrop-subtext">或者点击选择本地文件</div>
+      <div class="dragdrop-text" data-i18n="send_drag_here">拖拽文件到此处</div>
+      <div class="dragdrop-subtext" data-i18n="send_or_click">或者点击选择本地文件</div>
     </div>
   </div>
 
@@ -1367,14 +1393,14 @@
       <span class="icon-bar"></span>
     </button>
     <div id="send-nav-content" tabindex="-1">
-      <span id="send-current-file">未选择任何文件</span>
+      <span id="send-current-file" data-i18n="send_no_file">未选择任何文件</span>
       <ul>
         <li>
-          <a class="attention" id="send-nav-find-file-link" href="javascript:void(0)" onclick="Main.clickFileInput()">选择本地文件</a>
+          <a class="attention" id="send-nav-find-file-link" href="javascript:void(0)" onclick="Main.clickFileInput()" data-i18n="send_select_file">选择本地文件</a>
         </li>
         <hr>
         <li class="modesel">
-          <h4>编码模式</h4>
+          <h4 data-i18n="send_mode">编码模式</h4>
           <div class="modes-grid">
             <a class="mode-b" href="javascript:void(0)" onclick="Main.setMode('B')">B</a>
             <a class="mode-bm" href="javascript:void(0)" onclick="Main.setMode('Bm')">Bm</a>
@@ -1383,15 +1409,18 @@
           </div>
         </li>
         <li>
-          <h4>发送帧率 (FPS)</h4>
+          <h4 data-i18n="send_fps">发送帧率 (FPS)</h4>
           <input type="range" class="range" min="5" max="20" step="5" value="15" oninput="Main.setFPS(this.value)" onchange="Main.setFPS(this.value)" />
         </li>
-        <li class="small-link"><a href="javascript:void(0)" onclick="Main.toggleFullscreen()">全屏展示模式</a></li>
+        <li class="small-link"><a href="javascript:void(0)" onclick="Main.toggleFullscreen()" data-i18n="fullscreen">全屏展示模式</a></li>
       </ul>
     </div>
   </div>
 
   <!-- Inline Script 1: Pre-load Module for Emscripten WASM initialization -->
+  
+
+  <!-- Load I18n Script First -->
   
 
   <!-- Load Cimbar Scripts (Main is declared here) -->
@@ -1417,7 +1446,7 @@
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
     </svg>
-    返回大厅
+    <span data-i18n="back_to_hub">返回大厅</span>
   </a>
 
   <!-- Styled Settings Drawer overlay -->
@@ -1433,19 +1462,19 @@
     <div id="recv-nav-content" tabindex="-1">
       <ul>
 
-        <li><a href="javascript:void(0)" onclick="Recv.toggleDebugPanel()">切换调试面板</a></li>
-        <li><a href="javascript:void(0)" onclick="Recv.toggleFullscreen()">全屏接收模式</a></li>
+        <li><a href="javascript:void(0)" onclick="Recv.toggleDebugPanel()" data-i18n="recv_toggle_debug">切换调试面板</a></li>
+        <li><a href="javascript:void(0)" onclick="Recv.toggleFullscreen()" data-i18n="fullscreen">全屏接收模式</a></li>
       </ul>
     </div>
 
     <!-- Debug dashboard panel -->
     <div id="debug_menu">
       <button id="debug-button" onclick="Recv.showDebug();"></button>
-      <div class="statusbox" id="errorbox">暂无错误</div>
-      <div class="statusbox" id="t0">工作线程 0 空闲</div>
-      <div class="statusbox" id="t1">工作线程 1 空闲</div>
-      <div class="statusbox" id="t2">工作线程 2 空闲</div>
-      <div class="statusbox" id="t3">工作线程 3 空闲</div>
+      <div class="statusbox" id="errorbox" data-i18n="recv_status_no_error">暂无错误</div>
+      <div class="statusbox" id="t0">Worker 0 Idle</div>
+      <div class="statusbox" id="t1">Worker 1 Idle</div>
+      <div class="statusbox" id="t2">Worker 2 Idle</div>
+      <div class="statusbox" id="t3">Worker 3 Idle</div>
       <div class="statusbox" id="framesInFlight">0</div>
       <div class="statusbox" id="tdec">%VERSION%</div>
     </div>
@@ -1456,6 +1485,7 @@
     <div class="progress"></div>
   </div>
 
+  
   
   
 
@@ -1775,6 +1805,183 @@ self.onmessage = async (event) => {
       // Dynamically execute the Emscripten wrapper (triggers WASM compilation)
       (0, eval)(window.CIMBAR_WRAPPER_CODE);
     });
+  </script>
+
+  <!-- Inlined i18n Dictionary and Logic JS -->
+  <script type="text/javascript">
+    // i18n Dictionary
+const i18nDict = {
+    en: {
+        // Shared
+        "title_hub": "CIMBAR - Offline Browser File Transfer",
+        "title_send": "Cimbar File Sender",
+        "title_recv": "Cimbar File Receiver",
+        "back_to_hub": "Back to Hub",
+        "fullscreen": "Fullscreen Mode",
+        
+        // Hub (index.html)
+        "hub_main_title": "Cimbar Transfer Hub",
+        "hub_subtitle": "Completely offline, cross-device file transfer in the browser using dynamic color barcodes (no network required)",
+        "hub_sender": "File Sender",
+        "hub_sender_desc": "Select a local file and encode it into a stream of dynamic color barcodes playing on the screen (fully offline).",
+        "hub_btn_send": "Start Sending",
+        "hub_receiver": "File Receiver",
+        "hub_receiver_desc": "Use your device camera to scan the dynamic barcodes on the screen, decode in real-time, and instantly download the reconstructed file (fully offline).",
+        "hub_btn_recv": "Start Receiving",
+
+        // Send Page (send.html)
+        "send_status_ready": "Ready",
+        "send_dragdrop_title": "Drag & Drop or Select Local File",
+        "send_drag_here": "Drag file here",
+        "send_or_click": "Or click to select a local file",
+        "send_no_file": "No file selected",
+        "send_select_file": "Select Local File",
+        "send_mode": "Encoding Mode",
+        "send_fps": "Send Framerate (FPS)",
+
+        // Recv Page (recv.html)
+        "recv_toggle_debug": "Toggle Debug Panel",
+        "recv_status_no_error": "No error",
+        "recv_worker_idle": "Worker {n} Idle"
+    },
+    zh: {
+        // Shared
+        "title_hub": "CIMBAR 浏览器端无网文件传输工具",
+        "title_send": "Cimbar 文件发送端",
+        "title_recv": "Cimbar 文件接收端",
+        "back_to_hub": "返回大厅",
+        "fullscreen": "全屏展示模式",
+
+        // Hub (index.html)
+        "hub_main_title": "Cimbar 传输中心",
+        "hub_subtitle": "在浏览器中使用彩色条形码进行完全离线、跨设备的文件传输（无需任何网络连接）",
+        "hub_sender": "文件发送端",
+        "hub_sender_desc": "选择一个本地文件，将其编码为在屏幕上播放的动态彩色条形码流（完全离线）。",
+        "hub_btn_send": "开始发送",
+        "hub_receiver": "文件接收端",
+        "hub_receiver_desc": "使用设备摄像头扫描屏幕上的动态条形码，实时解码并瞬间下载重组后的文件（完全离线）。",
+        "hub_btn_recv": "开始接收",
+
+        // Send Page (send.html)
+        "send_status_ready": "准备就绪",
+        "send_dragdrop_title": "拖拽或选择本地文件",
+        "send_drag_here": "拖拽文件到此处",
+        "send_or_click": "或者点击选择本地文件",
+        "send_no_file": "未选择任何文件",
+        "send_select_file": "选择本地文件",
+        "send_mode": "编码模式",
+        "send_fps": "发送帧率 (FPS)",
+
+        // Recv Page (recv.html)
+        "recv_toggle_debug": "切换调试面板",
+        "recv_status_no_error": "暂无错误",
+        "recv_worker_idle": "工作线程 {n} 空闲"
+    }
+};
+
+class I18nManager {
+    constructor() {
+        this.currentLang = this.detectLanguage();
+        this.listeners = [];
+    }
+
+    detectLanguage() {
+        const storedLang = localStorage.getItem('cimbar_lang');
+        if (storedLang && i18nDict[storedLang]) {
+            return storedLang;
+        }
+        const sysLang = navigator.language || navigator.userLanguage;
+        if (sysLang.toLowerCase().startsWith('zh')) {
+            return 'zh';
+        }
+        return 'en';
+    }
+
+    setLanguage(lang) {
+        if (!i18nDict[lang]) return;
+        this.currentLang = lang;
+        localStorage.setItem('cimbar_lang', lang);
+        this.applyTranslations();
+        this.notifyListeners();
+        this.updateToggleButton();
+    }
+
+    toggleLanguage() {
+        const newLang = this.currentLang === 'en' ? 'zh' : 'en';
+        this.setLanguage(newLang);
+    }
+
+    t(key, params = {}) {
+        let str = i18nDict[this.currentLang][key];
+        if (!str) return key;
+        
+        // Simple template replacement for {n}
+        for (const [k, v] of Object.entries(params)) {
+            str = str.replace(`{${k}}`, v);
+        }
+        return str;
+    }
+
+    applyTranslations() {
+        // Document title
+        const titleKey = document.title ? document.documentElement.getAttribute('data-i18n-title') : null;
+        if (titleKey) {
+            document.title = this.t(titleKey);
+        }
+
+        // All elements with data-i18n
+        const elements = document.querySelectorAll('[data-i18n]');
+        elements.forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            const translation = this.t(key);
+            
+            // Check if we translate a specific attribute or innerHTML
+            const targetAttr = el.getAttribute('data-i18n-target');
+            if (targetAttr) {
+                el.setAttribute(targetAttr, translation);
+            } else {
+                el.innerHTML = translation;
+            }
+        });
+    }
+
+    updateToggleButton() {
+        const btn = document.getElementById('i18n-toggle');
+        if (btn) {
+            btn.innerHTML = this.currentLang === 'en' ? '🌐 简' : '🌐 En';
+            btn.title = this.currentLang === 'en' ? 'Switch to Chinese' : '切换为英文';
+        }
+    }
+
+    onChange(cb) {
+        this.listeners.push(cb);
+    }
+
+    notifyListeners() {
+        this.listeners.forEach(cb => cb(this.currentLang));
+    }
+
+    init() {
+        document.addEventListener('DOMContentLoaded', () => {
+            // Find title data attribute if we put it on html/head
+            this.applyTranslations();
+            
+            // Try to bind toggle button if it exists
+            const btn = document.getElementById('i18n-toggle');
+            if (btn) {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.toggleLanguage();
+                });
+                this.updateToggleButton();
+            }
+        });
+    }
+}
+
+window.I18n = new I18nManager();
+window.I18n.init();
+
   </script>
 
   <!-- Inlined Main (Send) JS -->

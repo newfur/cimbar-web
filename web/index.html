@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-i18n-title="title_hub">
 <head>
   <meta charset="utf-8">
   <title>CIMBAR 浏览器端无网文件传输工具</title>
@@ -374,16 +374,39 @@
         transform: translateY(0);
       }
     }
-  </style>
+    /* i18n toggle button */
+  #i18n-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-main);
+    padding: 8px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    backdrop-filter: blur(10px);
+    transition: all 0.2s ease;
+    z-index: 100;
+  }
+  #i18n-toggle:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+  }
+</style>
 </head>
 <body>
+  <button id="i18n-toggle" title="Switch Language">🌐 En</button>
 
   <div class="glow-sphere glow-cyan"></div>
   <div class="glow-sphere glow-purple"></div>
 
   <header>
-    <h1>Cimbar 传输中心</h1>
-    <p>在浏览器中使用彩色条形码进行完全离线、跨设备的文件传输（无需任何网络连接）</p>
+    <h1 data-i18n="hub_main_title">Cimbar 传输中心</h1>
+    <p data-i18n="hub_subtitle">在浏览器中使用彩色条形码进行完全离线、跨设备的文件传输（无需任何网络连接）</p>
   </header>
 
   <main class="main-container">
@@ -396,9 +419,9 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
         </svg>
       </div>
-      <h2>文件发送端</h2>
-      <p>选择一个本地文件，将其编码为在屏幕上播放的动态彩色条形码流（完全离线）。</p>
-      <a href="send.html" class="btn btn-cyan">开始发送</a>
+      <h2 data-i18n="hub_sender">文件发送端</h2>
+      <p data-i18n="hub_sender_desc">选择一个本地文件，将其编码为在屏幕上播放的动态彩色条形码流（完全离线）。</p>
+      <a href="send.html" class="btn btn-cyan" data-i18n="hub_btn_send">开始发送</a>
     </div>
 
     <!-- Receive Card -->
@@ -410,12 +433,13 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       </div>
-      <h2>文件接收端</h2>
-      <p>使用设备摄像头扫描屏幕上的动态条形码，实时解码并瞬间下载重组后的文件（完全离线）。</p>
-      <a href="recv.html" class="btn btn-purple">开始接收</a>
+      <h2 data-i18n="hub_receiver">文件接收端</h2>
+      <p data-i18n="hub_receiver_desc">使用设备摄像头扫描屏幕上的动态条形码，实时解码并瞬间下载重组后的文件（完全离线）。</p>
+      <a href="recv.html" class="btn btn-purple" data-i18n="hub_btn_recv">开始接收</a>
     </div>
 
   </main>
-
+  
+  <script src="i18n.js"></script>
 </body>
 </html>

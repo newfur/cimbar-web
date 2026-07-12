@@ -1,6 +1,7 @@
 import os
 import base64
 import re
+import json
 
 WEB_DIR = 'web'
 OUTPUT_FILE = 'cimbar_portable.html'
@@ -27,6 +28,7 @@ def main():
     qrcode_js = read_file('qrcode.min.js')
     zstd_js = read_file('zstd.2026-05-09T0146.js')
     cimbar_wrapper_js = read_file('cimbar_js.2026-05-09T0146.js')
+    i18n_js = read_file('i18n.js')
 
     # 3. Compile Web Worker code (WITHOUT embedded WASM)
     worker_js_raw = read_file('recv-worker.2026-05-09T0146.js')
@@ -38,8 +40,6 @@ def main():
     header_pattern = r"let _wasmInitialized\s*=\s*false;.*?let _buffs\s*=\s*\{\};.*?var Module\s*=\s*\{.*?onRuntimeInitialized:.*?\}\s*;"
     worker_js_raw = re.sub(header_pattern, "", worker_js_raw, flags=re.DOTALL)
     
-    # Use json.dumps for safe JS code serialization (handles all escaping robustly)
-    import json
     cimbar_wrapper_json = json.dumps(cimbar_wrapper_js)
     
     # Worker receives WASM binary + Emscripten code via postMessage (NO large blobs embedded)
@@ -311,6 +311,11 @@ def main():
       // Dynamically execute the Emscripten wrapper (triggers WASM compilation)
       (0, eval)(window.CIMBAR_WRAPPER_CODE);
     }});
+  </script>
+
+  <!-- Inlined i18n Dictionary and Logic JS -->
+  <script type="text/javascript">
+    {i18n_js}
   </script>
 
   <!-- Inlined Main (Send) JS -->
