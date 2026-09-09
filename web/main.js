@@ -101,16 +101,14 @@ var Main = function () {
       if (force_local) {
         _ww = undefined;
         // force refresh in main thread mode
-        window.location.hash = "";
-        window.location.search = "";
-        window.location.reload();
+        const cleanURL = window.location.origin + window.location.pathname;
+        window.location.replace(cleanURL);
         return;
       }
 
       Main.setMode('B');
       _ww.postMessage({ fun: 'nextFrame', args: [] });
     },
-
 
     check_GL_enabled: function () {
       var testCanvas = document.createElement('canvas');
@@ -126,7 +124,6 @@ var Main = function () {
       var width = window.innerWidth - 10;
       var height = window.innerHeight - 10;
       Main.scaleCanvas(canvas, width, height);
-      Main.alignInvisibleClick(canvas);
       Main.checkNavButtonOverlap();
     },
 
@@ -175,10 +172,6 @@ var Main = function () {
         canvas.style.width = xdim + "px";
         canvas.style.height = ydim + "px";
       }
-    },
-
-    alignInvisibleClick: function (canvas) {
-      // no-op
     },
 
     prevent_sleep: async function () {
@@ -235,9 +228,9 @@ var Main = function () {
       if (pause === undefined) {
         pause = true;
       }
-      document.getElementById("nav-button").blur();
-      document.getElementById("nav-content").blur();
-      document.getElementById("nav-find-file-link").blur();
+      if (document.activeElement && document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
       Main.togglePause(pause);
     },
 
@@ -260,7 +253,9 @@ var Main = function () {
     },
 
     setActive: function (active) {
-      // no-op
+      // hide cursor when there's a barcode active
+      var invisi = document.getElementById("dragdrop");
+      if (invisi) invisi.classList.add("active");
     },
 
     setMode: function (mode_str) {
@@ -326,7 +321,8 @@ var Main = function () {
     },
 
     setHTML: function (id, msg) {
-      document.getElementById(id).innerHTML = msg;
+      var elem = document.getElementById(id);
+      if (elem) elem.innerHTML = msg;
     },
 
     setTitle: function (msg) {

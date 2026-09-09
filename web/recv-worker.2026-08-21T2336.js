@@ -118,7 +118,7 @@ var RecvWorker = function () {
   };
 }();
 
-importScripts('cimbar_js.2026-05-09T0146.js');
+importScripts('cimbar_js.2026-08-21T2336.js');
 
 self.onmessage = async (event) => {
 

@@ -33,6 +33,10 @@ const MIME_TYPES = {
   '.svg': 'image/svg+xml'
 };
 
+const zlib = require('zlib');
+
+const COMPRESSIBLE_EXTS = new Set(['.html', '.css', '.js', '.wasm', '.json', '.svg']);
+
 const server = http.createServer((req, res) => {
   const localIp = getLocalIpAddress();
 
@@ -71,17 +75,59 @@ const server = http.createServer((req, res) => {
 
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+    const etag = `W/"${stats.size.toString(16)}-${Math.floor(stats.mtimeMs).toString(16)}"`;
 
-    // Allow CORS and set cache policies
+    // Check If-None-Match for 304 Not Modified
+    if (req.headers['if-none-match'] === etag) {
+      res.writeHead(304, {
+        'ETag': etag,
+        'Cache-Control': ext.includes('2026-') ? 'public, max-age=31536000, immutable' : 'no-cache'
+      });
+      res.end();
+      return;
+    }
+
+    // Set smart caching policy:
+    // Versioned assets (e.g. *.2026-08-21T2336.*) and images are immutable
+    const isImmutable = /20\d\d-\d\d-\d\dT\d\d\d\d/.test(safeUrl) || ['.png', '.ico', '.jpg'].includes(ext);
+    const cacheControl = isImmutable
+      ? 'public, max-age=31536000, immutable'
+      : 'no-cache';
+
     const headers = {
       'Content-Type': contentType,
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Cache-Control': cacheControl,
+      'ETag': etag,
+      'Vary': 'Accept-Encoding',
       'Access-Control-Allow-Origin': '*'
     };
 
+    // Determine HTTP compression (Brotli / Gzip / Deflate)
+    const acceptEncoding = req.headers['accept-encoding'] || '';
+    const shouldCompress = COMPRESSIBLE_EXTS.has(ext);
+
+    let stream = fs.createReadStream(filePath);
+    let transform = null;
+
+    if (shouldCompress) {
+      if (acceptEncoding.includes('br') && zlib.createBrotliCompress) {
+        headers['Content-Encoding'] = 'br';
+        transform = zlib.createBrotliCompress({
+          params: {
+            [zlib.constants.BROTLI_PARAM_QUALITY]: 4 // Fast quality for dynamic serving
+          }
+        });
+      } else if (acceptEncoding.includes('gzip')) {
+        headers['Content-Encoding'] = 'gzip';
+        transform = zlib.createGzip({ level: 6 });
+      } else if (acceptEncoding.includes('deflate')) {
+        headers['Content-Encoding'] = 'deflate';
+        transform = zlib.createDeflate();
+      }
+    }
+
     res.writeHead(200, headers);
 
-    const stream = fs.createReadStream(filePath);
     stream.on('error', (streamErr) => {
       console.error('Stream error:', streamErr);
       if (!res.headersSent) {
@@ -89,7 +135,12 @@ const server = http.createServer((req, res) => {
         res.end('500 Internal Server Error');
       }
     });
-    stream.pipe(res);
+
+    if (transform) {
+      stream.pipe(transform).pipe(res);
+    } else {
+      stream.pipe(res);
+    }
   });
 });
 

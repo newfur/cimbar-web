@@ -20,18 +20,20 @@ def main():
     print("Starting standalone single-file HTML packaging...")
 
     # 1. Read and base64-encode WebAssembly (embedded ONCE in the output)
-    wasm_bytes = read_binary('cimbar_js.2026-05-09T0146.wasm')
+    wasm_bytes = read_binary('cimbar_js.2026-08-21T2336.wasm')
     wasm_base64 = base64.b64encode(wasm_bytes).decode('utf-8')
     print(f"Loaded WASM binary, encoded size: {len(wasm_base64) / 1024 / 1024:.2f} MB")
 
     # 2. Read Core JS libraries
     qrcode_js = read_file('qrcode.min.js')
-    zstd_js = read_file('zstd.2026-05-09T0146.js')
-    cimbar_wrapper_js = read_file('cimbar_js.2026-05-09T0146.js')
+    zstd_js = read_file('zstd.2026-08-21T2336.js')
+    cimbar_wrapper_js = read_file('cimbar_js.2026-08-21T2336.js')
     i18n_js = read_file('i18n.js')
+    send_js = read_file('send.2026-08-21T2336.js')
+    send_js = send_js.replace('"current-file"', '"send-current-file"')
 
     # 3. Compile Web Worker code (WITHOUT embedded WASM)
-    worker_js_raw = read_file('recv-worker.2026-05-09T0146.js')
+    worker_js_raw = read_file('recv-worker.2026-08-21T2336.js')
     # Strip the importScripts line
     worker_js_raw = re.sub(r"importScripts\(['\"].*?['\"]\);", "", worker_js_raw)
     
@@ -42,7 +44,7 @@ def main():
     
     cimbar_wrapper_json = json.dumps(cimbar_wrapper_js)
     
-    # Worker receives WASM binary + Emscripten code via postMessage (NO large blobs embedded)
+    # Worker receives pre-compiled WASM module or binary + Emscripten code via postMessage
     worker_js_compiled = f"""
     var _wasmInitialized = false;
     var _buffs = {{}};
@@ -56,21 +58,32 @@ def main():
     // Capture the onmessage handler that worker_js_raw just set
     _frameHandler = self.onmessage;
     
-    // Override with our init handler that waits for WASM binary + wrapper code
+    // Override with our init handler that waits for WASM binary/module + wrapper code
     self.onmessage = function(e) {{
       if (e.data && e.data.type === 'initWasm') {{
-        // Set up Module with received WASM binary
+        // Set up Module with received WASM module or binary
         Module = {{
           preRun: [],
           onRuntimeInitialized: function() {{
-            console.info("Worker WASM initialized via shared binary");
+            console.info("Worker WASM initialized via shared binary/module");
             _wasmInitialized = true;
             self.postMessage({{ type: 'startWasm', ready: "ready!" }});
             // Now install the real frame handler
             self.onmessage = _frameHandler;
-          }},
-          wasmBinary: new Uint8Array(e.data.buffer)
+          }}
         }};
+        if (e.data.wasmModule) {{
+          Module.instantiateWasm = function(imports, successCallback) {{
+            WebAssembly.instantiate(e.data.wasmModule, imports).then(function(instance) {{
+              successCallback(instance, e.data.wasmModule);
+            }}).catch(function(err) {{
+              console.error("Worker instantiateWasm error:", err);
+            }});
+            return {{}};
+          }};
+        }} else if (e.data.buffer) {{
+          Module.wasmBinary = new Uint8Array(e.data.buffer);
+        }}
         // Execute the Emscripten wrapper code received from main thread
         (0, eval)(e.data.wrapperCode);
         return;
@@ -82,26 +95,39 @@ def main():
     worker_code_escaped = worker_js_compiled.replace('\\', '\\\\').replace('`', '\\`').replace('$', '\\$')
 
     # 4. Read main/recv JS files and rename conflicting drawer IDs
-    main_js = read_file('main.2026-05-09T0146.js')
+    main_js = read_file('main.2026-08-21T2336.js')
     main_js = main_js.replace('"nav-container"', '"send-nav-container"')
     main_js = main_js.replace('"nav-button"', '"send-nav-button"')
     main_js = main_js.replace('"nav-content"', '"send-nav-content"')
+    main_js = main_js.replace("'nav-button'", "'send-nav-button'")
+    main_js = main_js.replace("'nav-content'", "'send-nav-content'")
     main_js = main_js.replace('"current-file"', '"send-current-file"')
     main_js = main_js.replace('"nav-find-file-link"', '"send-nav-find-file-link"')
+    main_js = main_js.replace(
+        'document.getElementById(id).innerHTML = msg;',
+        'var elem = document.getElementById(id) || document.getElementById("send-" + id) || document.getElementById("recv-" + id); if (elem) elem.innerHTML = msg;'
+    )
+    main_js = main_js.replace(
+        'dragdrop.classList.add("active");',
+        'var invisi = document.getElementById("dragdrop"); if (invisi) invisi.classList.add("active");'
+    )
 
-    recv_js = read_file('recv.2026-05-09T0146.js')
+    recv_js = read_file('recv.2026-08-21T2336.js')
     recv_js = recv_js.replace('"nav-container"', '"recv-nav-container"')
     recv_js = recv_js.replace('"nav-button"', '"recv-nav-button"')
     recv_js = recv_js.replace('"nav-content"', '"recv-nav-content"')
     # Redirect worker creation to a Blob URL
-    recv_js = recv_js.replace("new Worker('recv-worker.2026-05-09T0146.js')", "new Worker(window.CIMBAR_WORKER_URL)")
+    recv_js = recv_js.replace("new Worker('recv-worker.2026-08-21T2336.js')", "new Worker(window.CIMBAR_WORKER_URL)")
 
-    # Inject postMessage to send WASM binary to each worker after creation
-    # Replace the worker creation loop to send WASM binary + wrapper code to each worker
+    # Inject postMessage to send precompiled WASM module (or binary fallback) to each worker
     recv_js = recv_js.replace(
         "_workers.push(new Worker(window.CIMBAR_WORKER_URL));",
         """var w = new Worker(window.CIMBAR_WORKER_URL);
-        w.postMessage({ type: 'initWasm', buffer: window.CIMBAR_WASM_BINARY.buffer, wrapperCode: window.CIMBAR_WRAPPER_CODE }, [window.CIMBAR_WASM_BINARY.buffer.slice(0)]);
+        if (window.CIMBAR_WASM_MODULE) {
+          w.postMessage({ type: 'initWasm', wasmModule: window.CIMBAR_WASM_MODULE, wrapperCode: window.CIMBAR_WRAPPER_CODE });
+        } else {
+          w.postMessage({ type: 'initWasm', buffer: window.CIMBAR_WASM_BINARY.buffer, wrapperCode: window.CIMBAR_WRAPPER_CODE }, [window.CIMBAR_WASM_BINARY.buffer.slice(0)]);
+        }
         _workers.push(w);"""
     )
 
@@ -201,11 +227,6 @@ def main():
   <meta charset="utf-8">
   <title>CIMBAR 浏览器端无网文件传输工具 (单文件版)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <!-- Async font loading: non-blocking, uses system fonts as fallback until loaded -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <noscript><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet"></noscript>
   
   <style>
     /* Global view switcher styling */
@@ -280,6 +301,12 @@ def main():
       var buffer = await response.arrayBuffer();
       window.CIMBAR_WASM_BINARY = new Uint8Array(buffer);
       console.log("WASM binary decoded: " + (buffer.byteLength / 1024 / 1024).toFixed(2) + " MB");
+      try {{
+        window.CIMBAR_WASM_MODULE = await WebAssembly.compile(buffer);
+        console.log("WebAssembly.Module compiled once for all threads.");
+      }} catch (err) {{
+        console.warn("WebAssembly.compile error, fallback to raw buffer:", err);
+      }}
       return window.CIMBAR_WASM_BINARY;
     }})();
 
@@ -299,16 +326,27 @@ def main():
     window.CIMBAR_WASM_READY.then(function(wasmBinary) {{
       Module = {{
         canvas: canvas,
-        wasmBinary: wasmBinary.buffer,
         onRuntimeInitialized: () => {{
           console.log("Main thread WASM loaded.");
           Main.init(canvas);
-          Main.nextFrame();
+          Main.setMode('B');
           Main.togglePause(true); // Start paused until entered
         }}
       }};
+      if (window.CIMBAR_WASM_MODULE) {{
+        Module.instantiateWasm = function(imports, successCallback) {{
+          WebAssembly.instantiate(window.CIMBAR_WASM_MODULE, imports).then(function(instance) {{
+            successCallback(instance, window.CIMBAR_WASM_MODULE);
+          }}).catch(function(err) {{
+            console.error("Main thread instantiateWasm error:", err);
+          }});
+          return {{}};
+        }};
+      }} else {{
+        Module.wasmBinary = wasmBinary.buffer;
+      }}
       
-      // Dynamically execute the Emscripten wrapper (triggers WASM compilation)
+      // Dynamically execute the Emscripten wrapper (triggers WASM instantiation)
       (0, eval)(window.CIMBAR_WRAPPER_CODE);
     }});
   </script>
@@ -318,7 +356,12 @@ def main():
     {i18n_js}
   </script>
 
-  <!-- Inlined Main (Send) JS -->
+  <!-- Inlined Send JS -->
+  <script type="text/javascript">
+    {send_js}
+  </script>
+
+  <!-- Inlined Main (Send UI) JS -->
   <script type="text/javascript">
     {main_js}
   </script>
@@ -367,7 +410,10 @@ def main():
 
       // Pause or resume transmitter logic to save CPU
       if (viewId === 'send') {{
-        if (typeof Main !== 'undefined') Main.togglePause(false);
+        if (typeof Main !== 'undefined') {{
+          Main.resize();
+          Main.togglePause(false);
+        }}
       }} else {{
         if (typeof Main !== 'undefined') Main.togglePause(true);
       }}
@@ -426,27 +472,58 @@ def main():
 
       // Configure drag-drop overlays to work in SPA view
       const sendDragDrop = document.getElementById('dragdrop');
-      const sendCurrentFile = document.getElementById('send-current-file');
+      const sendCurrentFile = document.getElementById('send-current-file') || document.getElementById('current-file');
       
       sendDragDrop.addEventListener('click', (e) => {{
         if (canvas.classList.contains('active')) return;
         Main.clickFileInput();
       }});
 
+      // Hook Main.setHTML to ensure transition is immediate and guaranteed
+      const origSetHTML = Main.setHTML;
+      Main.setHTML = function(id, msg) {{
+        var elem = document.getElementById(id) || document.getElementById('send-' + id) || document.getElementById('recv-' + id);
+        if (elem) elem.innerHTML = msg;
+        if (id === 'current-file' || id === 'send-current-file') {{
+          if (sendDragDrop) sendDragDrop.classList.add('hidden');
+          if (canvas) canvas.classList.add('active');
+          if (typeof Main !== 'undefined') Main.togglePause(false);
+        }}
+      }};
+
       // Observer to detect when file is loaded and transition views smoothly
       const observer = new MutationObserver(() => {{
-        const fileName = sendCurrentFile.textContent;
+        const fileName = sendCurrentFile ? sendCurrentFile.textContent : '';
         if (fileName && fileName !== 'No file selected' && fileName !== '未选择任何文件') {{
-          document.querySelector('.dragdrop-content').classList.add('hidden');
-          canvas.classList.add('active');
-          
-          sendDragDrop.style.border = 'none';
-          sendDragDrop.style.background = 'transparent';
-          sendDragDrop.style.padding = '0';
-          sendDragDrop.style.boxShadow = 'none';
+          if (sendDragDrop) sendDragDrop.classList.add('hidden');
+          if (canvas) canvas.classList.add('active');
+          if (typeof Main !== 'undefined') Main.togglePause(false);
         }}
       }});
-      observer.observe(sendCurrentFile, {{ childList: true, characterData: true, subtree: true }});
+      if (sendCurrentFile) {{
+        observer.observe(sendCurrentFile, {{ childList: true, characterData: true, subtree: true }});
+      }}
+
+      // Window-level drag & drop support across views (Hub and Send)
+      window.addEventListener("dragover", (e) => {{
+        e.preventDefault();
+        document.body.style["opacity"] = 0.7;
+      }}, false);
+
+      window.addEventListener("dragleave", (e) => {{
+        e.preventDefault();
+        document.body.style["opacity"] = 1.0;
+      }}, false);
+
+      window.addEventListener("drop", (e) => {{
+        e.preventDefault();
+        e.stopPropagation();
+        document.body.style["opacity"] = 1.0;
+        showView('send');
+        if (typeof Main !== 'undefined') {{
+          Main.dragDrop(e);
+        }}
+      }}, false);
 
       // Override Main/Recv clickNav and blurNav to use .open class toggle
       if (typeof Main !== 'undefined') {{
@@ -501,6 +578,11 @@ def main():
     with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
         f.write(standalone_html)
     print(f"Stand-alone file successfully compiled to: {OUTPUT_FILE}")
+
+    web_portable = os.path.join(WEB_DIR, 'portable.html')
+    with open(web_portable, 'w', encoding='utf-8') as f:
+        f.write(standalone_html)
+    print(f"Synced portable file to: {web_portable}")
 
 if __name__ == '__main__':
     main()

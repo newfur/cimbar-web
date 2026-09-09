@@ -213,7 +213,7 @@ var Recv = function () {
       // clean up _workers if exists?
       _workers = [];
       for (let i = 0; i < num_workers; i++) {
-        _workers.push(new Worker('recv-worker.2026-05-09T0146.js'));
+        _workers.push(new Worker('recv-worker.2026-08-21T2336.js'));
 
         _workers[i].onmessage = (event) => {
           Recv.on_decode(i, event.data);

@@ -4,11 +4,8 @@
   <title>Cimbar 文件发送端</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, user-scalable=no">
-  <link rel="manifest" href="pwa.2026-05-09T0146.json">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-  
+  <link rel="manifest" href="pwa.2026-08-21T2336.json">
+  <link rel="preload" href="cimbar_js.2026-08-21T2336.wasm" as="fetch" type="application/wasm" crossorigin fetchpriority="high">
   <style>
     :root {
       --bg-gradient: linear-gradient(135deg, #fbfbfe 0%, #f3f0fa 50%, #e8e2f7 100%);
@@ -35,7 +32,7 @@
     }
 
     body {
-      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
       background: var(--bg-gradient);
       color: var(--text-main);
       display: flex;
@@ -544,16 +541,16 @@
     Module.canvas = canvas;
     Module.onRuntimeInitialized = () => {
       Main.init(canvas);
-      Main.nextFrame();
     };
   </script>
 
   <!-- Load I18n Script First -->
   <script src="i18n.js"></script>
 
-  <!-- Load Cimbar Scripts (Main is declared here) -->
-  <script src="cimbar_js.2026-05-09T0146.js"></script>
-  <script src="main.2026-05-09T0146.js"></script>
+  <!-- Load Cimbar Scripts (Send, Main, and WASM) -->
+  <script src="send.2026-08-21T2336.js"></script>
+  <script src="main.2026-08-21T2336.js"></script>
+  <script src="cimbar_js.2026-08-21T2336.js"></script>
 
   <!-- Inline Script 2: Handle custom interactions safely using Main -->
   <script type="text/javascript">
@@ -589,6 +586,17 @@
       }
     }
 
+    // Hook Main.setHTML for instant transition upon file encode
+    const origSetHTML = Main.setHTML;
+    Main.setHTML = function(id, msg) {
+      if (origSetHTML) origSetHTML(id, msg);
+      if (id === 'current-file') {
+        dragdrop.classList.add('hidden');
+        canvas.classList.add('active');
+        Main.togglePause(false);
+      }
+    };
+
     // Observer to detect when file is loaded and transition views smoothly
     const observer = new MutationObserver(() => {
       const fileName = currentFile.textContent;
@@ -596,6 +604,7 @@
         // Hide drop placeholder entirely, fade in canvas
         dragdrop.classList.add('hidden');
         canvas.classList.add('active');
+        Main.togglePause(false);
       }
     });
     observer.observe(currentFile, { childList: true, characterData: true, subtree: true });
