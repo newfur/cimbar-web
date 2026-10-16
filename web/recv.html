@@ -422,6 +422,224 @@
         transform: translate(-50%, -50%) scale(0.8);
       }
     }
+
+    /* QR Result Modal */
+    .qr-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(35, 33, 84, 0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      transition: opacity 0.3s ease;
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .qr-modal.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .qr-modal-card {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      width: 440px;
+      max-width: 92vw;
+      box-shadow: 0 25px 60px rgba(124, 58, 237, 0.2);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      padding: 1.8rem;
+      animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    @keyframes modalSlideUp {
+      from { transform: translateY(20px) scale(0.96); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    .qr-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+    }
+
+    .qr-modal-header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .qr-modal-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: rgba(124, 58, 237, 0.1);
+      color: var(--accent-purple);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .qr-modal-title h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    .qr-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 8px;
+      background: rgba(79, 70, 229, 0.08);
+      color: var(--accent-cyan);
+      font-weight: 600;
+      margin-top: 3px;
+    }
+
+    .qr-modal-close {
+      background: transparent;
+      border: none;
+      font-size: 1.4rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .qr-modal-close:hover {
+      color: var(--text-main);
+      background: rgba(124, 58, 237, 0.08);
+    }
+
+    .qr-modal-body {
+      background: rgba(124, 58, 237, 0.03);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      padding: 1rem;
+      max-height: min(280px, 40vh);
+      overflow-y: auto;
+      word-break: break-all;
+      white-space: pre-wrap;
+      -webkit-user-select: text;
+      user-select: text;
+      -webkit-overflow-scrolling: touch;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: var(--text-main);
+    }
+
+    .qr-modal-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .qr-modal-actions-row {
+      display: flex;
+      gap: 0.6rem;
+    }
+
+    .btn-action-primary {
+      flex: 1;
+      padding: 0.75rem 1.2rem;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+      color: white;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25);
+      transition: all 0.2s;
+    }
+
+    .btn-action-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
+    }
+
+    .btn-action-secondary {
+      flex: 1;
+      padding: 0.75rem 1.2rem;
+      border-radius: 12px;
+      border: 1px solid var(--glass-border);
+      background: rgba(255, 255, 255, 0.85);
+      color: var(--text-main);
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-action-secondary:hover {
+      background: #ffffff;
+      border-color: var(--accent-purple);
+      color: var(--accent-purple);
+      transform: translateY(-1px);
+    }
+
+    .btn-action-cancel {
+      padding: 0.6rem;
+      border-radius: 12px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .btn-action-cancel:hover {
+      color: var(--text-main);
+    }
+
+    .version-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      vertical-align: middle;
+      font-weight: 600;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(124, 58, 237, 0.1);
+      border: 1px solid var(--glass-border);
+      color: var(--accent-purple);
+      margin-left: 0.4rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -454,9 +672,11 @@
     
     <div id="nav-content" tabindex="-1">
       <ul>
-
         <li><a href="javascript:void(0)" onclick="Recv.toggleDebugPanel()" data-i18n="recv_toggle_debug">切换调试面板</a></li>
         <li><a href="javascript:void(0)" onclick="Recv.toggleFullscreen()" data-i18n="fullscreen">全屏接收模式</a></li>
+        <li class="small" style="margin-top:auto; text-align:center; padding-top:1rem; border-top:1px solid var(--glass-border);">
+          <span style="font-size:0.8rem; color:var(--text-muted); font-weight:500;">Cimbar Web <span class="version-badge">v1.0.0</span></span>
+        </li>
       </ul>
     </div>
 
@@ -469,7 +689,55 @@
       <div class="statusbox" id="t2">Worker 2 Idle</div>
       <div class="statusbox" id="t3">Worker 3 Idle</div>
       <div class="statusbox" id="framesInFlight">0</div>
-      <div class="statusbox" id="tdec">%VERSION%</div>
+      <div class="statusbox" id="tdec">v1.0.0</div>
+    </div>
+  </div>
+
+  <!-- QR Code Result Overlay Modal -->
+  <div id="qr-result-modal" class="qr-modal hidden">
+    <div class="qr-modal-card">
+      <div class="qr-modal-header">
+        <div class="qr-modal-header-left">
+          <div class="qr-modal-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+            </svg>
+          </div>
+          <div class="qr-modal-title">
+            <h3 data-i18n="recv_qr_detected">识别到普通静态二维码</h3>
+            <span id="qr-result-type" class="qr-badge">文本</span>
+          </div>
+        </div>
+        <button type="button" class="qr-modal-close" onclick="Recv.closeQRModal()">✕</button>
+      </div>
+
+      <div class="qr-modal-body" id="qr-result-text"></div>
+
+      <div class="qr-modal-actions">
+        <div class="qr-modal-actions-row">
+          <button type="button" id="qr-btn-open" class="btn-action-primary hidden" onclick="Recv.openQRUrl()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            <span data-i18n="recv_qr_open_url">打开链接</span>
+          </button>
+          <button type="button" id="qr-btn-copy" class="btn-action-secondary" onclick="Recv.copyQRText()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+            </svg>
+            <span id="qr-copy-text-span" data-i18n="recv_qr_copy_text">复制内容</span>
+          </button>
+          <button type="button" id="qr-btn-download" class="btn-action-secondary hidden" onclick="Recv.downloadQRFile()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <span data-i18n="recv_qr_download_file">下载文件</span>
+          </button>
+        </div>
+        <button type="button" class="btn-action-cancel" onclick="Recv.closeQRModal()">
+          <span data-i18n="recv_qr_continue">继续扫描</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -479,6 +747,7 @@
   </div>
 
   <script src="i18n.js"></script>
+  <script src="jsqr.js"></script>
   <script src="recv.2026-08-21T2336.js"></script>
   <script src="zstd.2026-08-21T2336.js"></script>
 

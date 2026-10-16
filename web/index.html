@@ -32,9 +32,10 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 2rem 1rem;
+      justify-content: flex-start;
+      padding: clamp(2rem, 5vh, 4rem) 1.5rem 2.5rem 1.5rem;
       overflow-x: hidden;
+      overflow-y: auto;
     }
 
     /* Ambient background glows */
@@ -61,7 +62,7 @@
 
     header {
       text-align: center;
-      margin-bottom: 3.5rem;
+      margin-bottom: 2.2rem;
       animation: fadeInDown 0.8s ease-out;
     }
 
@@ -74,6 +75,22 @@
       -webkit-text-fill-color: transparent;
       margin-bottom: 0.5rem;
       text-shadow: 0 0 40px rgba(124, 58, 237, 0.1);
+    }
+
+    .version-badge {
+      display: inline-block;
+      font-size: 0.85rem;
+      vertical-align: middle;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(124, 58, 237, 0.1);
+      border: 1px solid var(--glass-border);
+      color: var(--accent-purple);
+      -webkit-text-fill-color: var(--accent-purple);
+      letter-spacing: normal;
+      margin-left: 0.5rem;
+      box-shadow: 0 2px 8px var(--accent-purple-glow);
     }
 
     header p {
@@ -239,8 +256,12 @@
       color: var(--text-muted);
       font-size: 0.95rem;
       line-height: 1.6;
-      margin-bottom: 2.5rem;
-      max-width: 280px;
+      margin-bottom: 2rem;
+      max-width: 290px;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .btn {
@@ -255,7 +276,7 @@
       text-decoration: none;
       transition: all 0.3s ease;
       display: inline-block;
-      margin: 0 auto;
+      margin-top: auto;
     }
 
     .btn-cyan {
@@ -401,7 +422,7 @@
   <div class="glow-sphere glow-purple"></div>
 
   <header>
-    <h1 data-i18n="hub_main_title">Cimbar 传输中心</h1>
+    <h1><span data-i18n="hub_main_title">Cimbar 传输中心</span><span class="version-badge">v1.0.0</span></h1>
     <p data-i18n="hub_subtitle">在浏览器中使用彩色条形码进行完全离线、跨设备的文件传输（无需任何网络连接）</p>
   </header>
 

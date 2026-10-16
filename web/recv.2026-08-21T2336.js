@@ -115,6 +115,24 @@ var Recv = function () {
   var _mode = 0;
   var _userMode = 0;
 
+  var _qrScanningEnabled = true;
+  var _lastQRScanTime = 0;
+  var _qrCooldownUntil = 0;
+  var _qrModalOpen = false;
+  var _qrScanningBusy = false;
+  var _lastScannedQRText = null;
+  var _barcodeDetector = null;
+  var _qrCanvas = null;
+  var _qrCtx = null;
+
+  if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
+    try {
+      _barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
+    } catch (e) {
+      console.warn("BarcodeDetector init failed:", e);
+    }
+  }
+
   function _toggleFullscreen() {
     if (document.fullscreenElement) {
       return document.exitFullscreen();
@@ -430,6 +448,8 @@ var Recv = function () {
       Recv.update_visual_state();
       // make sure the camera feed stays up
       Recv.watch_for_camera_pause();
+      // Check for static QR codes
+      Recv.check_qr_frame(now);
 
       const modeVals = [66, 68, 67, 4];
 
@@ -620,6 +640,259 @@ var Recv = function () {
           }
         }
       }
+    },
+
+    check_qr_frame: function (now) {
+      if (!_qrScanningEnabled || _qrModalOpen || !_video || _video.readyState < 2) {
+        return;
+      }
+      if (now - _lastQRScanTime < 250 || now < _qrCooldownUntil) {
+        return;
+      }
+      _lastQRScanTime = now;
+      Recv.scan_qr_code();
+    },
+
+    scan_qr_code: async function () {
+      if (!_video || _video.readyState < 2 || _qrScanningBusy) return;
+      _qrScanningBusy = true;
+
+      try {
+        let resultText = null;
+
+        if (_barcodeDetector) {
+          try {
+            const barcodes = await _barcodeDetector.detect(_video);
+            if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+              resultText = barcodes[0].rawValue;
+            }
+          } catch (e) { }
+        }
+
+        if (!resultText && typeof jsQR !== 'undefined') {
+          if (!_qrCanvas) {
+            _qrCanvas = document.createElement('canvas');
+            _qrCtx = _qrCanvas.getContext('2d', { willReadFrequently: true });
+          }
+          const vw = _video.videoWidth || 640;
+          const vh = _video.videoHeight || 480;
+          const targetW = Math.min(vw, 480);
+          const targetH = Math.round(targetW * (vh / vw));
+
+          if (_qrCanvas.width !== targetW || _qrCanvas.height !== targetH) {
+            _qrCanvas.width = targetW;
+            _qrCanvas.height = targetH;
+          }
+
+          _qrCtx.drawImage(_video, 0, 0, targetW, targetH);
+          const imgData = _qrCtx.getImageData(0, 0, targetW, targetH);
+          const code = jsQR(imgData.data, targetW, targetH, {
+            inversionAttempts: "dontInvert"
+          });
+          if (code && code.data) {
+            resultText = code.data;
+          }
+        }
+
+        if (resultText && resultText.trim().length > 0) {
+          Recv.on_qr_detected(resultText);
+        }
+      } catch (err) {
+        console.warn("QR scan error:", err);
+      } finally {
+        _qrScanningBusy = false;
+      }
+    },
+
+    on_qr_detected: function (text) {
+      if (_qrModalOpen) return;
+      _qrModalOpen = true;
+      _lastScannedQRText = text;
+
+      try {
+        if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
+      } catch (_) { }
+
+      var xh1 = document.getElementById("crosshair1");
+      var xh2 = document.getElementById("crosshair2");
+      if (xh1 && xh2) {
+        xh1.classList.add("active_xhairs");
+        xh2.classList.add("active_xhairs");
+      }
+
+      var modal = document.getElementById('qr-result-modal');
+      var contentBox = document.getElementById('qr-result-text');
+      var typeBadge = document.getElementById('qr-result-type');
+      var openBtn = document.getElementById('qr-btn-open');
+      var downloadBtn = document.getElementById('qr-btn-download');
+      var copySpan = document.getElementById('qr-copy-text-span');
+
+      if (contentBox) {
+        contentBox.textContent = text;
+        contentBox.scrollTop = 0;
+      }
+      if (copySpan) {
+        var copyDefault = (window.I18n && window.I18n.t) ? window.I18n.t('recv_qr_copy_text') : '复制内容';
+        copySpan.textContent = copyDefault;
+      }
+
+      var isUrl = /^https?:\/\//i.test(text.trim());
+      var isDataUrl = /^data:[^;]+;base64,/i.test(text.trim());
+
+      if (isUrl) {
+        if (typeBadge) typeBadge.textContent = 'URL / 网址';
+        if (openBtn) openBtn.classList.remove('hidden');
+        if (downloadBtn) downloadBtn.classList.add('hidden');
+      } else if (isDataUrl) {
+        if (typeBadge) typeBadge.textContent = '文件 / 数据';
+        if (openBtn) openBtn.classList.add('hidden');
+        if (downloadBtn) downloadBtn.classList.remove('hidden');
+      } else {
+        if (typeBadge) typeBadge.textContent = '文本 (' + text.length + ' 字符)';
+        if (openBtn) openBtn.classList.add('hidden');
+        if (downloadBtn) downloadBtn.classList.add('hidden');
+      }
+
+      if (modal) modal.classList.remove('hidden');
+    },
+
+    closeQRModal: function () {
+      _qrModalOpen = false;
+      _qrCooldownUntil = performance.now() + 1500;
+      var modal = document.getElementById('qr-result-modal');
+      if (modal) modal.classList.add('hidden');
+    },
+
+    openQRUrl: function () {
+      if (!_lastScannedQRText) return;
+      var url = _lastScannedQRText.trim();
+      if (/^https?:\/\//i.test(url)) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    },
+
+    copyQRText: function () {
+      if (!_lastScannedQRText) return;
+      var text = _lastScannedQRText;
+      var copySpan = document.getElementById('qr-copy-text-span');
+      var doneMsg = (window.I18n && window.I18n.t) ? window.I18n.t('recv_qr_copied') : '已复制！';
+      var defaultMsg = (window.I18n && window.I18n.t) ? window.I18n.t('recv_qr_copy_text') : '复制内容';
+
+      function showSuccess() {
+        if (copySpan) {
+          copySpan.textContent = doneMsg;
+          clearTimeout(Recv._copyFeedbackTimer);
+          Recv._copyFeedbackTimer = setTimeout(function () {
+            if (copySpan) copySpan.textContent = defaultMsg;
+          }, 2500);
+        }
+      }
+
+      function execCommandFallback() {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '0';
+        ta.style.left = '-9999px';
+        ta.style.width = '2em';
+        ta.style.height = '2em';
+        ta.style.padding = '0';
+        ta.style.border = 'none';
+        ta.style.outline = 'none';
+        ta.style.boxShadow = 'none';
+        ta.style.background = 'transparent';
+        ta.style.fontSize = '16px';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+
+        var isIOS = /ipad|iphone|ipod/i.test(navigator.userAgent) ||
+          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        if (isIOS) {
+          ta.focus();
+          ta.setSelectionRange(0, text.length);
+          try {
+            var range = document.createRange();
+            range.selectNodeContents(ta);
+            var sel = window.getSelection();
+            if (sel) {
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
+            ta.setSelectionRange(0, 999999);
+          } catch (_) { }
+        } else {
+          ta.select();
+        }
+
+        var copied = false;
+        try {
+          copied = document.execCommand('copy');
+        } catch (err) {
+          console.warn("execCommand copy error:", err);
+        }
+
+        if (isIOS) {
+          try {
+            var sel2 = window.getSelection();
+            if (sel2) sel2.removeAllRanges();
+          } catch (_) { }
+        }
+        document.body.removeChild(ta);
+
+        // Tertiary fallback: Select directly from visible modal text container
+        if (!copied) {
+          var contentEl = document.getElementById('qr-result-text');
+          if (contentEl) {
+            try {
+              var r = document.createRange();
+              r.selectNodeContents(contentEl);
+              var s = window.getSelection();
+              if (s) {
+                s.removeAllRanges();
+                s.addRange(r);
+                copied = document.execCommand('copy');
+                s.removeAllRanges();
+              }
+            } catch (_) { }
+          }
+        }
+
+        if (copied) {
+          showSuccess();
+        }
+      }
+
+      // Try Clipboard API first if in secure context
+      if (window.isSecureContext && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          showSuccess();
+        }).catch(function () {
+          execCommandFallback();
+        });
+      } else {
+        execCommandFallback();
+      }
+    },
+
+    downloadQRFile: function () {
+      if (!_lastScannedQRText) return;
+      var text = _lastScannedQRText.trim();
+      if (/^data:[^;]+;base64,/i.test(text)) {
+        var a = document.createElement('a');
+        a.href = text;
+        var nameMatch = text.match(/name=([^;]+)/);
+        var filename = nameMatch ? decodeURIComponent(nameMatch[1]) : 'scanned_file.bin';
+        a.download = filename;
+        a.click();
+      }
+    },
+
+    toggleQRScanning: function (enabled) {
+      if (enabled === undefined) _qrScanningEnabled = !_qrScanningEnabled;
+      else _qrScanningEnabled = !!enabled;
+      return _qrScanningEnabled;
     },
 
     set_HTML: function (id, msg, only_if_unset) {

@@ -26,6 +26,7 @@ def main():
 
     # 2. Read Core JS libraries
     qrcode_js = read_file('qrcode.min.js')
+    jsqr_js = read_file('jsqr.js')
     zstd_js = read_file('zstd.2026-08-21T2336.js')
     cimbar_wrapper_js = read_file('cimbar_js.2026-08-21T2336.js')
     i18n_js = read_file('i18n.js')
@@ -198,8 +199,11 @@ def main():
         return ""
 
     index_body = extract_body_elements(index_html)
+    index_body = index_body.replace('href="send.html"', 'href="javascript:void(0)" onclick="showView(\'send\')"')
+    index_body = index_body.replace('href="recv.html"', 'href="javascript:void(0)" onclick="showView(\'recv\')"')
     
     send_body = extract_body_elements(send_html)
+    send_body = send_body.replace('href="index.html"', 'href="javascript:void(0)" onclick="showView(\'hub\')"')
     send_body = send_body.replace('id="nav-container"', 'id="send-nav-container"')
     send_body = send_body.replace('id="nav-button"', 'id="send-nav-button"')
     send_body = send_body.replace('id="nav-content"', 'id="send-nav-content"')
@@ -211,6 +215,7 @@ def main():
     send_body = send_body.replace('Main.fileInput(this)', 'Main.fileInput(this)')
     
     recv_body = extract_body_elements(recv_html)
+    recv_body = recv_body.replace('href="index.html"', 'href="javascript:void(0)" onclick="showView(\'hub\')"')
     recv_body = recv_body.replace('id="nav-container"', 'id="recv-nav-container"')
     recv_body = recv_body.replace('id="nav-button"', 'id="recv-nav-button"')
     recv_body = recv_body.replace('id="nav-content"', 'id="recv-nav-content"')
@@ -228,32 +233,76 @@ def main():
   <title>CIMBAR 浏览器端无网文件传输工具 (单文件版)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   
+  <script type="text/javascript">
+    // Protect text inputs and textareas from global keyboard capture (e.g. GLFW, Emscripten)
+    (function() {{
+      function isTextInput(el) {{
+        if (!el) return false;
+        var tag = (el.tagName || '').toUpperCase();
+        return tag === 'TEXTAREA' || tag === 'INPUT' || el.isContentEditable;
+      }}
+
+      var origAdd = EventTarget.prototype.addEventListener;
+      var origRemove = EventTarget.prototype.removeEventListener;
+      var wrappedMap = new WeakMap();
+
+      EventTarget.prototype.addEventListener = function(type, listener, options) {{
+        if (typeof listener === 'function' && (type === 'keydown' || type === 'keypress' || type === 'keyup')) {{
+          if (this instanceof HTMLTextAreaElement || this instanceof HTMLInputElement) {{
+            return origAdd.call(this, type, listener, options);
+          }}
+          var wrapped = function(e) {{
+            if (e && isTextInput(e.target)) {{
+              if (e.key === 'Escape') {{
+                return listener.apply(this, arguments);
+              }}
+              return;
+            }}
+            return listener.apply(this, arguments);
+          }};
+          wrappedMap.set(listener, wrapped);
+          return origAdd.call(this, type, wrapped, options);
+        }}
+        return origAdd.apply(this, arguments);
+      }};
+
+      EventTarget.prototype.removeEventListener = function(type, listener, options) {{
+        var wrapped = (typeof listener === 'function' && wrappedMap.get(listener)) || listener;
+        return origRemove.call(this, type, wrapped, options);
+      }};
+    }})();
+  </script>
+
   <style>
-    /* Global view switcher styling */
+    /* Strict view switcher styling */
     .view-container {{
-      display: none;
+      display: none !important;
       width: 100%;
       min-height: 100dvh;
+      box-sizing: border-box;
     }}
     .view-container.active {{
-      display: block;
+      display: flex !important;
+    }}
+    #view-hub:not(.active),
+    #view-send:not(.active),
+    #view-recv:not(.active) {{
+      display: none !important;
     }}
     #view-send.active {{
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }}
-    #view-hub.active {{
-      display: flex !important;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
-      padding: max(2rem, env(safe-area-inset-top)) 1rem max(3rem, env(safe-area-inset-bottom)) 1rem;
+      justify-content: flex-start !important;
+      min-height: 100dvh;
+      box-sizing: border-box;
+      position: relative;
+      padding: max(1rem, env(safe-area-inset-top)) 1rem 2rem 1rem !important;
     }}
-    @media (min-width: 769px) {{
-      #view-hub.active {{
-        justify-content: center;
-      }}
+    #view-hub.active {{
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start !important;
+      padding: clamp(2rem, 5vh, 4rem) 1.5rem 2.5rem 1.5rem !important;
     }}
     
     /* Unified index/send/recv CSS sheets */
@@ -270,18 +319,23 @@ def main():
   </div>
 
   <!-- VIEW 2: File Transmitter (Sender) -->
-  <div id="view-send" class="view-container">
+  <div id="view-send" class="view-container" style="display: none !important;">
     {send_body}
   </div>
 
   <!-- VIEW 3: File Receiver (Camera) -->
-  <div id="view-recv" class="view-container">
+  <div id="view-recv" class="view-container" style="display: none !important;">
     {recv_body}
   </div>
 
   <!-- Inlined qrcode.min.js -->
   <script type="text/javascript">
     {qrcode_js}
+  </script>
+
+  <!-- Inlined jsqr.js -->
+  <script type="text/javascript">
+    {jsqr_js}
   </script>
 
   <!-- Inlined zstd.js -->
@@ -294,20 +348,34 @@ def main():
     // Store the Emscripten wrapper code for sharing with workers
     window.CIMBAR_WRAPPER_CODE = {cimbar_wrapper_json};
 
-    // Fast async base64 decode using browser-native fetch() data URL
-    // ~5-10x faster than JS atob() + charCodeAt loop
+    // Robust base64 decode (fetch with atob fallback for iOS WebKit / local file contexts)
     window.CIMBAR_WASM_READY = (async function() {{
-      var response = await fetch('data:application/octet-stream;base64,{wasm_base64}');
-      var buffer = await response.arrayBuffer();
-      window.CIMBAR_WASM_BINARY = new Uint8Array(buffer);
-      console.log("WASM binary decoded: " + (buffer.byteLength / 1024 / 1024).toFixed(2) + " MB");
+      var wasmBytes = null;
       try {{
-        window.CIMBAR_WASM_MODULE = await WebAssembly.compile(buffer);
+        var response = await fetch('data:application/octet-stream;base64,{wasm_base64}');
+        var buffer = await response.arrayBuffer();
+        wasmBytes = new Uint8Array(buffer);
+      }} catch (err) {{
+        console.warn("fetch data URL failed (iOS WebKit context), using synchronous atob fallback:", err);
+      }}
+      if (!wasmBytes) {{
+        var bin = atob('{wasm_base64}');
+        var len = bin.length;
+        wasmBytes = new Uint8Array(len);
+        for (var i = 0; i < len; i++) {{
+          wasmBytes[i] = bin.charCodeAt(i);
+        }}
+      }}
+      window.CIMBAR_WASM_BINARY = wasmBytes;
+      console.log("WASM binary decoded: " + (wasmBytes.byteLength / 1024 / 1024).toFixed(2) + " MB");
+      try {{
+        window.CIMBAR_WASM_MODULE = await WebAssembly.compile(wasmBytes.buffer);
         console.log("WebAssembly.Module compiled once for all threads.");
       }} catch (err) {{
         console.warn("WebAssembly.compile error, fallback to raw buffer:", err);
+        window.CIMBAR_WASM_MODULE = null;
       }}
-      return window.CIMBAR_WASM_BINARY;
+      return wasmBytes;
     }})();
 
     // Web Worker Blob URL (worker code does NOT contain WASM binary or Emscripten wrapper)
@@ -378,9 +446,11 @@ def main():
       console.log("Routing to view: " + viewId);
       
       // Control scrollability and height behavior dynamically to prevent browser chrome/notch overlaps
-      if (viewId === 'hub') {{
-        document.body.style.overflow = 'auto';
-        document.documentElement.style.overflow = 'auto';
+      if (viewId === 'hub' || viewId === 'send') {{
+        if (!document.body.classList.contains('transmitting')) {{
+          document.body.style.overflow = 'auto';
+          document.documentElement.style.overflow = 'auto';
+        }}
         document.body.style.height = 'auto';
         document.documentElement.style.height = 'auto';
       }} else {{
@@ -390,32 +460,42 @@ def main():
         document.documentElement.style.height = '100dvh';
       }}
 
-      // Toggle view container visibility
-      document.getElementById('view-hub').classList.remove('active');
-      document.getElementById('view-send').classList.remove('active');
-      document.getElementById('view-recv').classList.remove('active');
-      
-      document.getElementById('view-hub').style.display = 'none';
-      document.getElementById('view-send').style.display = 'none';
-      document.getElementById('view-recv').style.display = 'none';
-
-      const targetView = document.getElementById('view-' + viewId);
-      targetView.classList.add('active');
-      
-      if (viewId === 'send') {{
-        targetView.style.display = 'flex';
-      }} else {{
-        targetView.style.display = 'block';
-      }}
+      // Strictly isolate views: only target view gets active and display:flex; all others hidden
+      var viewIds = ['hub', 'send', 'recv'];
+      viewIds.forEach(function(v) {{
+        var el = document.getElementById('view-' + v);
+        if (el) {{
+          if (v === viewId) {{
+            el.classList.add('active');
+            el.style.setProperty('display', 'flex', 'important');
+          }} else {{
+            el.classList.remove('active');
+            el.style.setProperty('display', 'none', 'important');
+          }}
+        }}
+      }});
 
       // Pause or resume transmitter logic to save CPU
       if (viewId === 'send') {{
         if (typeof Main !== 'undefined') {{
           Main.resize();
-          Main.togglePause(false);
+          const cv = document.getElementById('canvas');
+          if (cv && cv.classList.contains('active')) {{
+            Main.togglePause(false);
+          }} else {{
+            Main.togglePause(true);
+          }}
         }}
       }} else {{
         if (typeof Main !== 'undefined') Main.togglePause(true);
+      }}
+
+      // If switching to Hub, reset sender state so previous barcodes don't linger
+      if (viewId === 'hub') {{
+        document.body.classList.remove('transmitting');
+        if (typeof Main !== 'undefined' && typeof Main.reset === 'function') {{
+          Main.reset();
+        }}
       }}
 
       // Start/stop camera stream to free resources
@@ -447,23 +527,47 @@ def main():
 
 
     // Override the buttons/links in Hub Portal to perform SPA routing
-    document.addEventListener("DOMContentLoaded", () => {{
+    function initSPA() {{
       const startSendBtn = document.querySelector('.card-send .btn');
-      startSendBtn.href = "javascript:void(0)";
-      startSendBtn.onclick = () => showView('send');
+      if (startSendBtn) {{
+        startSendBtn.href = "javascript:void(0)";
+        startSendBtn.onclick = (e) => {{
+          if (e) e.preventDefault();
+          showView('send');
+        }};
+      }}
 
       const startRecvBtn = document.querySelector('.card-recv .btn');
-      startRecvBtn.href = "javascript:void(0)";
-      startRecvBtn.onclick = () => showView('recv');
+      if (startRecvBtn) {{
+        startRecvBtn.href = "javascript:void(0)";
+        startRecvBtn.onclick = (e) => {{
+          if (e) e.preventDefault();
+          showView('recv');
+        }};
+      }}
 
       // Home/Hub buttons on sub-views
       const sendHomeBtn = document.querySelector('#view-send .btn-home');
-      sendHomeBtn.href = "javascript:void(0)";
-      sendHomeBtn.onclick = () => showView('hub');
+      if (sendHomeBtn) {{
+        sendHomeBtn.href = "javascript:void(0)";
+        sendHomeBtn.onclick = (e) => {{
+          if (e) e.preventDefault();
+          document.body.classList.remove('transmitting');
+          if (typeof Main !== 'undefined' && typeof Main.reset === 'function') {{
+            Main.reset();
+          }}
+          showView('hub');
+        }};
+      }}
 
       const recvHomeBtn = document.querySelector('#view-recv .btn-home');
-      recvHomeBtn.href = "javascript:void(0)";
-      recvHomeBtn.onclick = () => showView('hub');
+      if (recvHomeBtn) {{
+        recvHomeBtn.href = "javascript:void(0)";
+        recvHomeBtn.onclick = (e) => {{
+          if (e) e.preventDefault();
+          showView('hub');
+        }};
+      }}
 
       // Overwrite checkNavButtonOverlap to a no-op
       if (typeof Main !== 'undefined') {{
@@ -474,10 +578,12 @@ def main():
       const sendDragDrop = document.getElementById('dragdrop');
       const sendCurrentFile = document.getElementById('send-current-file') || document.getElementById('current-file');
       
-      sendDragDrop.addEventListener('click', (e) => {{
-        if (canvas.classList.contains('active')) return;
-        Main.clickFileInput();
-      }});
+      if (sendDragDrop) {{
+        sendDragDrop.addEventListener('click', (e) => {{
+          if (canvas.classList.contains('active')) return;
+          Main.clickFileInput();
+        }});
+      }}
 
       // Hook Main.setHTML to ensure transition is immediate and guaranteed
       const origSetHTML = Main.setHTML;
@@ -485,9 +591,22 @@ def main():
         var elem = document.getElementById(id) || document.getElementById('send-' + id) || document.getElementById('recv-' + id);
         if (elem) elem.innerHTML = msg;
         if (id === 'current-file' || id === 'send-current-file') {{
+          const textCard = document.getElementById('text-card');
+          const qrDisplayCard = document.getElementById('qr-display-card');
+          if (textCard) textCard.classList.add('hidden');
+          if (qrDisplayCard) qrDisplayCard.classList.add('hidden');
           if (sendDragDrop) sendDragDrop.classList.add('hidden');
-          if (canvas) canvas.classList.add('active');
-          if (typeof Main !== 'undefined') Main.togglePause(false);
+          if (canvas) {{
+            canvas.classList.add('active');
+            canvas.classList.add('has-file');
+          }}
+          document.body.classList.add('transmitting');
+          window.scrollTo(0, 0);
+          if (typeof Main !== 'undefined') {{
+            Main.switchTab('file');
+            Main.togglePause(false);
+            Main.resize();
+          }}
         }}
       }};
 
@@ -495,9 +614,21 @@ def main():
       const observer = new MutationObserver(() => {{
         const fileName = sendCurrentFile ? sendCurrentFile.textContent : '';
         if (fileName && fileName !== 'No file selected' && fileName !== '未选择任何文件') {{
+          const textCard = document.getElementById('text-card');
+          const qrDisplayCard = document.getElementById('qr-display-card');
+          if (textCard) textCard.classList.add('hidden');
+          if (qrDisplayCard) qrDisplayCard.classList.add('hidden');
           if (sendDragDrop) sendDragDrop.classList.add('hidden');
-          if (canvas) canvas.classList.add('active');
-          if (typeof Main !== 'undefined') Main.togglePause(false);
+          if (canvas) {{
+            canvas.classList.add('active');
+            canvas.classList.add('has-file');
+          }}
+          document.body.classList.add('transmitting');
+          window.scrollTo(0, 0);
+          if (typeof Main !== 'undefined') {{
+            Main.togglePause(false);
+            Main.resize();
+          }}
         }}
       }});
       if (sendCurrentFile) {{
@@ -528,18 +659,22 @@ def main():
       // Override Main/Recv clickNav and blurNav to use .open class toggle
       if (typeof Main !== 'undefined') {{
         Main.blurNav = function(pause) {{
-          document.getElementById("send-nav-container").classList.remove("open");
+          const nav = document.getElementById("send-nav-container");
+          if (nav) nav.classList.remove("open");
         }};
         Main.clickNav = function() {{
-          document.getElementById("send-nav-container").classList.toggle("open");
+          const nav = document.getElementById("send-nav-container");
+          if (nav) nav.classList.toggle("open");
         }};
       }}
       if (typeof Recv !== 'undefined') {{
         Recv.blurNav = function(pause) {{
-          document.getElementById("recv-nav-container").classList.remove("open");
+          const nav = document.getElementById("recv-nav-container");
+          if (nav) nav.classList.remove("open");
         }};
         Recv.clickNav = function() {{
-          document.getElementById("recv-nav-container").classList.toggle("open");
+          const nav = document.getElementById("recv-nav-container");
+          if (nav) nav.classList.toggle("open");
         }};
         Recv.toggleDebugPanel = function() {{
           const debugPanel = document.getElementById('debug_menu');
@@ -551,7 +686,8 @@ def main():
       }}
 
       // Auto-close drawer when setting option is clicked
-      const sendLinks = document.getElementById('send-nav-content').getElementsByTagName('a');
+      const sendNavContent = document.getElementById('send-nav-content');
+      const sendLinks = sendNavContent ? sendNavContent.getElementsByTagName('a') : [];
       for (let link of sendLinks) {{
         if (link.id !== 'send-nav-find-file-link') {{
           link.addEventListener('click', () => {{
@@ -559,7 +695,8 @@ def main():
           }});
         }}
       }}
-      const recvLinks = document.getElementById('recv-nav-content').getElementsByTagName('a');
+      const recvNavContent = document.getElementById('recv-nav-content');
+      const recvLinks = recvNavContent ? recvNavContent.getElementsByTagName('a') : [];
       for (let link of recvLinks) {{
         link.addEventListener('click', () => {{
           setTimeout(() => Recv.blurNav(), 100);
@@ -568,7 +705,13 @@ def main():
 
       // Initialize view and overflow states on load
       showView('hub');
-    }});
+    }}
+
+    if (document.readyState === 'loading') {{
+      document.addEventListener("DOMContentLoaded", initSPA);
+    }} else {{
+      initSPA();
+    }}
   </script>
 
 </body>

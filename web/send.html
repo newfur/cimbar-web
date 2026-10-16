@@ -6,6 +6,45 @@
   <meta name="viewport" content="width=device-width, user-scalable=no">
   <link rel="manifest" href="pwa.2026-08-21T2336.json">
   <link rel="preload" href="cimbar_js.2026-08-21T2336.wasm" as="fetch" type="application/wasm" crossorigin fetchpriority="high">
+  <script type="text/javascript">
+    // Protect text inputs and textareas from global keyboard capture (e.g. GLFW, Emscripten)
+    (function() {
+      function isTextInput(el) {
+        if (!el) return false;
+        var tag = (el.tagName || '').toUpperCase();
+        return tag === 'TEXTAREA' || tag === 'INPUT' || el.isContentEditable;
+      }
+
+      var origAdd = EventTarget.prototype.addEventListener;
+      var origRemove = EventTarget.prototype.removeEventListener;
+      var wrappedMap = new WeakMap();
+
+      EventTarget.prototype.addEventListener = function(type, listener, options) {
+        if (typeof listener === 'function' && (type === 'keydown' || type === 'keypress' || type === 'keyup')) {
+          if (this instanceof HTMLTextAreaElement || this instanceof HTMLInputElement) {
+            return origAdd.call(this, type, listener, options);
+          }
+          var wrapped = function(e) {
+            if (e && isTextInput(e.target)) {
+              if (e.key === 'Escape') {
+                return listener.apply(this, arguments);
+              }
+              return;
+            }
+            return listener.apply(this, arguments);
+          };
+          wrappedMap.set(listener, wrapped);
+          return origAdd.call(this, type, wrapped, options);
+        }
+        return origAdd.apply(this, arguments);
+      };
+
+      EventTarget.prototype.removeEventListener = function(type, listener, options) {
+        var wrapped = (typeof listener === 'function' && wrappedMap.get(listener)) || listener;
+        return origRemove.call(this, type, wrapped, options);
+      };
+    })();
+  </script>
   <style>
     :root {
       --bg-gradient: linear-gradient(135deg, #fbfbfe 0%, #f3f0fa 50%, #e8e2f7 100%);
@@ -27,8 +66,8 @@
     }
 
     html, body {
-      height: 100dvh;
-      overflow: hidden;
+      min-height: 100dvh;
+      overflow-x: hidden;
     }
 
     body {
@@ -36,11 +75,22 @@
       background: var(--bg-gradient);
       color: var(--text-main);
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       transition: opacity 0.4s ease-in;
       margin: 0;
       position: relative;
+      overflow-y: auto;
+      padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(2.5rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+    }
+
+    body.transmitting {
+      overflow: hidden !important;
+    }
+
+    body.transmitting #dragdrop {
+      display: none !important;
     }
 
     /* Ambient background glows */
@@ -70,7 +120,7 @@
       position: fixed;
       top: max(20px, env(safe-area-inset-top));
       left: max(20px, env(safe-area-inset-left));
-      z-index: 10;
+      z-index: 25;
       background: rgba(255, 255, 255, 0.6);
       border: 1px solid var(--glass-border);
       color: var(--text-main);
@@ -100,21 +150,19 @@
 
     /* Decoupled, perfectly centered canvas barcode */
     #canvas {
-      display: block;
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      border-radius: 12px;
-      box-shadow: 0 20px 50px rgba(124, 58, 237, 0.1);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.4s ease;
-      z-index: 5;
-      margin: 0 auto;
+      display: none;
     }
 
     #canvas.active {
+      display: block;
+      position: fixed;
+      left: 50%;
+      top: calc(50% + 20px);
+      transform: translate(-50%, -50%);
+      border-radius: 14px;
+      box-shadow: 0 20px 60px rgba(124, 58, 237, 0.15);
+      z-index: 10;
+      margin: 0;
       opacity: 1;
       pointer-events: auto;
       cursor: none;
@@ -125,8 +173,8 @@
       background: var(--glass-bg);
       border: 2px dashed rgba(124, 58, 237, 0.3);
       border-radius: 24px;
-      padding: 4rem 2rem;
-      width: 450px;
+      padding: 3.5rem 2rem;
+      width: 480px;
       max-width: 90vw;
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
@@ -139,8 +187,9 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 250px;
+      min-height: 280px;
       z-index: 2;
+      margin-top: 1rem;
     }
 
     #dragdrop:hover {
@@ -199,6 +248,574 @@
     .dragdrop.error .dragdrop-icon {
       color: #ef4444;
       background: rgba(239, 68, 68, 0.08);
+    }
+
+    /* Top Header Bar */
+    .send-header-bar {
+      width: 100%;
+      max-width: 1060px;
+      margin: 0.2rem auto 1.2rem auto;
+      z-index: 12;
+      position: relative;
+    }
+
+    .send-top-nav-row {
+      display: block;
+    }
+
+    /* Top Segmented Tab Controller */
+    .send-tabs-container {
+      margin: 0 auto;
+      z-index: 12;
+      display: flex;
+      justify-content: center;
+    }
+
+    .send-tabs {
+      display: flex;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid var(--glass-border);
+      padding: 4px;
+      border-radius: 16px;
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      box-shadow: 0 4px 20px rgba(124, 58, 237, 0.08);
+      gap: 4px;
+    }
+
+    .tab-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0.5rem 1rem;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+    }
+
+    .tab-btn.active {
+      background: #ffffff;
+      color: var(--accent-purple);
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.12);
+    }
+
+    /* Dual-Card Static QR Hub Layout (matching index.html card style and size) */
+    #text-card {
+      max-width: 1060px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.8rem;
+      margin: 0 auto;
+      z-index: 2;
+      box-sizing: border-box;
+      align-items: stretch;
+    }
+
+    .qr-side-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 1.4rem 1.5rem 1.3rem;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 16px 40px rgba(124, 58, 237, 0.07);
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-sizing: border-box;
+    }
+
+    .qr-side-card:hover {
+      box-shadow: 0 20px 48px rgba(124, 58, 237, 0.11);
+      border-color: var(--glass-hover-border);
+    }
+
+    .qr-card-header {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 0.9rem;
+      width: 100%;
+      text-align: left;
+    }
+
+    .qr-icon-wrapper {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.08);
+      border: 1px solid var(--glass-border);
+      flex-shrink: 0;
+    }
+
+    .qr-icon-wrapper svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .qr-card-input .qr-icon-wrapper {
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(124, 58, 237, 0.18) 100%);
+      color: var(--accent-purple);
+      border-color: rgba(124, 58, 237, 0.2);
+    }
+
+    .qr-card-preview .qr-icon-wrapper {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(79, 70, 229, 0.18) 100%);
+      color: var(--accent-cyan);
+      border-color: rgba(79, 70, 229, 0.2);
+    }
+
+    .qr-card-header-text {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .qr-card-header h2 {
+      font-size: 1.18rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 0;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+    }
+
+    .qr-card-header p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+      margin-top: 2px;
+      margin-bottom: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .qr-textarea {
+      width: 100%;
+      height: 380px;
+      box-sizing: border-box;
+      border: 1px solid var(--glass-border);
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 16px;
+      padding: 1rem 1.1rem;
+      font-family: inherit;
+      font-size: 0.95rem;
+      color: var(--text-main);
+      resize: none;
+      outline: none;
+      transition: all 0.25s;
+      line-height: 1.55;
+    }
+
+    .qr-textarea:focus {
+      border-color: var(--accent-purple);
+      box-shadow: 0 0 0 3px var(--accent-purple-glow);
+      background: #ffffff;
+    }
+
+    .qr-toolbar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.8rem;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .qr-toolbar-left {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-tool {
+      background: rgba(124, 58, 237, 0.08);
+      border: 1px solid var(--glass-border);
+      color: var(--text-main);
+      padding: 0.45rem 0.85rem;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .btn-tool:hover {
+      background: rgba(124, 58, 237, 0.15);
+      border-color: var(--glass-hover-border);
+      color: var(--accent-purple);
+    }
+
+    .qr-chars-badge {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-family: monospace;
+      font-weight: 500;
+    }
+
+    /* Overflow Alert Box */
+    .qr-alert-box {
+      margin-top: 0.8rem;
+      padding: 0.85rem 1rem;
+      border-radius: 14px;
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #dc2626;
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      width: 100%;
+      box-sizing: border-box;
+      text-align: left;
+    }
+
+    .qr-alert-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-alert-action {
+      padding: 0.4rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border-radius: 8px;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      background: #ffffff;
+      color: #dc2626;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-alert-action:hover {
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .btn-alert-cimbar {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      color: #ffffff !important;
+      border: none !important;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.25);
+    }
+
+    .btn-alert-cimbar:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+    }
+
+    /* Large 1:1 Square QR Preview Box (matches textarea dimensions) */
+    .qr-display-inner {
+      background: #ffffff;
+      padding: 10px;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--glass-border);
+      width: 100%;
+      height: 380px;
+      max-width: 380px;
+      aspect-ratio: 1 / 1;
+      box-sizing: border-box;
+      margin: 0 auto;
+    }
+
+    #qrcode-render-target {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1 / 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #qrcode-render-target svg {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1 / 1;
+      display: block;
+    }
+
+    /* Placeholder inside QR box when empty */
+    .qr-placeholder-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      padding: 1.5rem;
+      gap: 0.8rem;
+    }
+
+    .qr-placeholder-icon {
+      width: 64px;
+      height: 64px;
+      opacity: 0.35;
+    }
+
+    /* Actions Row under QR */
+    .qr-actions-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 380px;
+      margin: 0.8rem auto 0 auto;
+    }
+
+    .btn-qr-action {
+      flex: 1 1 calc(50% - 0.35rem);
+      padding: 0.55rem 0.65rem;
+      border-radius: 11px;
+      border: 1px solid var(--glass-border);
+      background: rgba(255, 255, 255, 0.85);
+      color: var(--text-main);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .btn-qr-action:hover:not(:disabled) {
+      background: #ffffff;
+      border-color: var(--accent-purple);
+      color: var(--accent-purple);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+    }
+
+    .btn-qr-action:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    /* Fullscreen Modal */
+    .qr-fullscreen-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 13, 30, 0.85);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .qr-fullscreen-content {
+      background: #ffffff;
+      padding: 28px;
+      border-radius: 28px;
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      cursor: default;
+      max-width: 90vw;
+      max-height: 90vh;
+    }
+
+    .qr-fullscreen-target {
+      width: min(75vw, 75vh, 520px);
+      height: min(75vw, 75vh, 520px);
+      aspect-ratio: 1 / 1;
+    }
+
+    .qr-fullscreen-target svg {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1 / 1;
+      display: block;
+    }
+
+    .qr-fullscreen-hint {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-top: 1.2rem;
+    }
+
+    .btn-close-fs {
+      position: absolute;
+      top: -14px;
+      right: -14px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid #ffffff;
+      background: #1e1b4b;
+      color: #ffffff;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      transition: transform 0.2s;
+    }
+
+    .btn-close-fs:hover {
+      transform: scale(1.1);
+    }
+
+    /* Responsive Grid */
+    @media (max-width: 860px) {
+      #text-card {
+        grid-template-columns: 1fr;
+        gap: 1.4rem;
+        max-width: 480px;
+        margin-bottom: 2rem;
+      }
+      .qr-side-card {
+        padding: 1.2rem 1.2rem;
+      }
+      .qr-textarea {
+        height: 280px;
+      }
+      .qr-display-inner {
+        width: 100%;
+        max-width: 320px;
+        height: 320px;
+      }
+      .qr-actions-row {
+        max-width: 320px;
+      }
+    }
+
+    /* Small file alert inside send */
+    .small-file-alert {
+      margin-top: 1.2rem;
+      padding: 0.6rem 1rem;
+      border-radius: 12px;
+      background: rgba(124, 58, 237, 0.08);
+      border: 1px solid rgba(124, 58, 237, 0.2);
+      font-size: 0.85rem;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      max-width: 90vw;
+      text-align: left;
+    }
+
+    .small-file-btn {
+      background: var(--accent-purple);
+      color: white;
+      border: none;
+      padding: 0.35rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .small-file-btn:hover {
+      background: var(--accent-cyan);
+    }
+
+    .version-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      vertical-align: middle;
+      font-weight: 600;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(124, 58, 237, 0.1);
+      border: 1px solid var(--glass-border);
+      color: var(--accent-purple);
+      margin-left: 0.4rem;
+    }
+
+    @media (max-width: 768px) {
+      .send-header-bar {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.65rem;
+        margin: 0.2rem auto 1rem auto;
+        width: 100%;
+        max-width: 480px;
+      }
+
+      .send-top-nav-row {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        width: 100%;
+      }
+
+      .btn-home {
+        position: static !important;
+        transform: none !important;
+        margin: 0 !important;
+        align-self: flex-start;
+        padding: 0.45rem 0.85rem;
+        font-size: 0.82rem;
+      }
+
+      .send-tabs-container {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin: 0 auto;
+      }
+
+      .send-tabs {
+        width: 100%;
+        max-width: 360px;
+        box-sizing: border-box;
+      }
+
+      .tab-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 0.45rem 0.5rem;
+        font-size: 0.82rem;
+        gap: 4px;
+      }
+    }
+
+    .hidden {
+      display: none !important;
     }
 
 
@@ -467,13 +1084,35 @@
   <div class="glow-sphere glow-cyan"></div>
   <div class="glow-sphere glow-purple"></div>
 
-  <!-- Back to portal -->
-  <a href="index.html" class="btn-home">
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-    </svg>
-    <span data-i18n="back_to_hub">返回大厅</span>
-  </a>
+  <!-- Top Header Bar -->
+  <div class="send-header-bar">
+    <div class="send-top-nav-row">
+      <a href="index.html" class="btn-home">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+        <span data-i18n="back_to_hub">返回大厅</span>
+      </a>
+    </div>
+
+    <!-- Top Mode Switcher Tabs -->
+    <div class="send-tabs-container">
+      <div class="send-tabs">
+        <button type="button" class="tab-btn active" id="tab-file-btn" onclick="Main.switchTab('file')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span data-i18n="tab_file">文件传输</span>
+        </button>
+        <button type="button" class="tab-btn" id="tab-text-btn" onclick="Main.switchTab('text')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+          </svg>
+          <span data-i18n="tab_text">文本 / 网址 (二维码)</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <div id="status" data-i18n="send_status_ready">准备就绪</div>
 
@@ -487,6 +1126,119 @@
       </div>
       <div class="dragdrop-text" data-i18n="send_drag_here">拖拽文件到此处</div>
       <div class="dragdrop-subtext" data-i18n="send_or_click">或者点击选择本地文件</div>
+      <div id="small-file-alert" class="small-file-alert hidden" onclick="event.stopPropagation();">
+        <span>💡 <span data-i18n="send_small_file_hint">检测到小文件 (<span class="small-file-size">0</span> 字节)：</span></span>
+        <button type="button" class="small-file-btn" onclick="Main.convertFileToQR();" data-i18n="send_btn_switch_qr">切换为静态二维码</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dual-Card Static QR Hub (matching index.html card structure and size) -->
+  <div id="text-card" class="hidden">
+    <!-- Left Card: Text Input / Clipboard -->
+    <div class="qr-side-card qr-card-input">
+      <div class="qr-card-header">
+        <div class="qr-icon-wrapper">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </div>
+        <div class="qr-card-header-text">
+          <h2 data-i18n="send_qr_title">文本输入 / 剪贴板</h2>
+          <p data-i18n="send_qr_desc">在此输入或粘贴文本，右侧将实时生成高清晰度静态普通二维码。</p>
+        </div>
+      </div>
+
+      <textarea id="qr-input-text" class="qr-textarea" placeholder="在此输入或粘贴文本、网址、Token、Wi-Fi 密码等，亦可拖入文本文件..." data-i18n="send_qr_placeholder" data-i18n-target="placeholder" oninput="Main.onQRTextInput()" onpaste="Main.onQRTextPaste(event)" onkeydown="event.stopPropagation();" onkeyup="event.stopPropagation();" onkeypress="event.stopPropagation();"></textarea>
+      
+      <div class="qr-toolbar">
+        <div class="qr-toolbar-left">
+          <button type="button" class="btn-tool" onclick="Main.pasteFromClipboard()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <span data-i18n="send_btn_paste">从剪贴板粘贴</span>
+          </button>
+          <button type="button" class="btn-tool" onclick="Main.clearQRText()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            <span data-i18n="send_btn_clear">清空</span>
+          </button>
+        </div>
+        <span id="qr-input-count" class="qr-chars-badge">0 字符 · 0 字节</span>
+      </div>
+
+      <!-- Overflow Alert Box -->
+      <div id="qr-overflow-alert" class="qr-alert-box hidden">
+        <div>⚠️ <span data-i18n="send_qr_overflow_warn">内容过长 (<span id="qr-over-chars">0</span> 字符 / <span id="qr-over-bytes">0</span> 字节)，超出标准单张二维码物理上限 (2,953 字节)。</span></div>
+        <div class="qr-alert-actions">
+          <button type="button" class="btn-alert-action btn-alert-cimbar" onclick="Main.sendTextViaCimbar()">
+            <span data-i18n="send_btn_switch_cimbar_full">🚀 一键转为 Cimbar 动态彩码传输 (无上限)</span>
+          </button>
+          <button type="button" class="btn-alert-action" onclick="Main.trimQRTextToFit()">
+            <span data-i18n="send_btn_trim_qr">✂️ 截断至二维码最大容量</span>
+          </button>
+          <button type="button" class="btn-alert-action" onclick="Main.convertToAlphanumeric()">
+            <span data-i18n="send_btn_convert_alphanumeric">🔠 转为大写英数模式</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Card: Guaranteed 1:1 Square QR Preview & Actions -->
+    <div class="qr-side-card qr-card-preview">
+      <div class="qr-card-header">
+        <div class="qr-icon-wrapper">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+          </svg>
+        </div>
+        <div class="qr-card-header-text">
+          <h2 data-i18n="send_qr_preview_title">实时普通静态二维码</h2>
+          <p data-i18n="send_qr_preview_desc">标准点阵二维码，任何手机相机、微信扫一扫均可直接识别。</p>
+        </div>
+      </div>
+
+      <div class="qr-display-inner" id="qrcode-box">
+        <div id="qrcode-render-target"></div>
+      </div>
+
+      <div class="qr-actions-row">
+        <button type="button" id="btn-qr-fs" class="btn-qr-action" onclick="Main.toggleQRFullscreen(true)" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+          <span data-i18n="send_qr_fullscreen">全屏展示</span>
+        </button>
+        <button type="button" id="btn-qr-dl" class="btn-qr-action" onclick="Main.downloadQRImage()" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <span data-i18n="send_qr_download">下载图片</span>
+        </button>
+        <button type="button" id="btn-qr-copy" class="btn-qr-action" onclick="Main.copyQRImage()" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+          </svg>
+          <span data-i18n="send_qr_copy_img">复制图片</span>
+        </button>
+        <button type="button" id="btn-back-to-cimbar" class="btn-qr-action" onclick="Main.sendTextViaCimbar()" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <span data-i18n="send_btn_switch_cimbar">切为 Cimbar 彩码</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fullscreen Modal for Static QR -->
+  <div id="qr-fullscreen-modal" class="qr-fullscreen-modal hidden" onclick="Main.toggleQRFullscreen(false)">
+    <div class="qr-fullscreen-content" onclick="event.stopPropagation()">
+      <button type="button" class="btn-close-fs" onclick="Main.toggleQRFullscreen(false)">✕</button>
+      <div id="qr-fullscreen-target" class="qr-fullscreen-target"></div>
+      <div class="qr-fullscreen-hint" data-i18n="send_qr_fs_hint">点击任意空白处或按 ESC 退出全屏</div>
     </div>
   </div>
 
@@ -510,6 +1262,9 @@
         <li>
           <a class="attention" id="nav-find-file-link" href="javascript:void(0)" onclick="Main.clickFileInput()" data-i18n="send_select_file">选择本地文件</a>
         </li>
+        <li>
+          <a href="javascript:void(0)" onclick="Main.reset(); Main.blurNav();" data-i18n="send_reset">重置 / 发送新文件</a>
+        </li>
         <hr>
         <li class="modesel">
           <h4 data-i18n="send_mode">编码模式</h4>
@@ -525,6 +1280,9 @@
           <input type="range" class="range" min="5" max="20" step="5" value="15" oninput="Main.setFPS(this.value)" onchange="Main.setFPS(this.value)" />
         </li>
         <li class="small-link"><a href="javascript:void(0)" onclick="Main.toggleFullscreen()" data-i18n="fullscreen">全屏展示模式</a></li>
+        <li class="small" style="margin-top:auto; text-align:center; padding-top:1rem; border-top:1px solid var(--glass-border);">
+          <span style="font-size:0.8rem; color:var(--text-muted); font-weight:500;">Cimbar Web <span class="version-badge">v1.0.0</span></span>
+        </li>
       </ul>
     </div>
   </div>
@@ -546,6 +1304,9 @@
 
   <!-- Load I18n Script First -->
   <script src="i18n.js"></script>
+
+  <!-- Load QRCode library -->
+  <script src="qrcode.min.js"></script>
 
   <!-- Load Cimbar Scripts (Send, Main, and WASM) -->
   <script src="send.2026-08-21T2336.js"></script>
@@ -591,9 +1352,16 @@
     Main.setHTML = function(id, msg) {
       if (origSetHTML) origSetHTML(id, msg);
       if (id === 'current-file') {
+        const textCard = document.getElementById('text-card');
+        if (textCard) textCard.classList.add('hidden');
         dragdrop.classList.add('hidden');
         canvas.classList.add('active');
+        canvas.classList.add('has-file');
+        document.body.classList.add('transmitting');
+        window.scrollTo(0, 0);
+        Main.switchTab('file');
         Main.togglePause(false);
+        Main.resize();
       }
     };
 
@@ -601,13 +1369,66 @@
     const observer = new MutationObserver(() => {
       const fileName = currentFile.textContent;
       if (fileName && fileName !== window.I18n.t('send_no_file')) {
-        // Hide drop placeholder entirely, fade in canvas
+        const textCard = document.getElementById('text-card');
+        if (textCard) textCard.classList.add('hidden');
         dragdrop.classList.add('hidden');
         canvas.classList.add('active');
+        canvas.classList.add('has-file');
+        document.body.classList.add('transmitting');
+        window.scrollTo(0, 0);
         Main.togglePause(false);
+        Main.resize();
       }
     });
     observer.observe(currentFile, { childList: true, characterData: true, subtree: true });
+
+    // Drag-and-drop file support for the QR textarea
+    const qrTextarea = document.getElementById('qr-input-text');
+    if (qrTextarea) {
+      qrTextarea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        qrTextarea.style.borderColor = 'var(--accent-purple)';
+      });
+      qrTextarea.addEventListener('dragleave', () => {
+        qrTextarea.style.borderColor = '';
+      });
+      qrTextarea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        qrTextarea.style.borderColor = '';
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          const file = e.dataTransfer.files[0];
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            qrTextarea.value = evt.target.result || '';
+            Main.onQRTextInput();
+          };
+          reader.readAsText(file);
+        }
+      });
+    }
+
+    // ESC key to close static QR fullscreen modal
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        Main.toggleQRFullscreen(false);
+      }
+    });
+
+    // Reset state if returned to hub or restored from cache
+    const sendHomeBtn = document.querySelector('.btn-home');
+    if (sendHomeBtn) {
+      sendHomeBtn.addEventListener('click', () => {
+        if (typeof Main !== 'undefined' && typeof Main.reset === 'function') {
+          Main.reset();
+        }
+      });
+    }
+
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted && typeof Main !== 'undefined' && typeof Main.reset === 'function') {
+        Main.reset();
+      }
+    });
   </script>
 
 </body>

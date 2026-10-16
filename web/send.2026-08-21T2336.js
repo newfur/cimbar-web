@@ -103,7 +103,13 @@ var Send = function () {
     },
 
     rotate_window: function (needRotate) {
-      Module._cimbare_rotate_window(needRotate);
+      if (typeof Module !== 'undefined' && Module._cimbare_rotate_window) {
+        try {
+          Module._cimbare_rotate_window(needRotate);
+        } catch (e) {
+          console.warn("rotate_window error:", e);
+        }
+      }
     },
 
     encode_init: function (filename) {
