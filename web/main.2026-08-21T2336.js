@@ -74,6 +74,7 @@ var Main = function () {
     reset: function () {
       Main.togglePause(true);
       document.body.classList.remove('transmitting');
+      document.documentElement.classList.remove('transmitting');
 
       if (typeof Module !== 'undefined' && Module._cimbare_init_encode) {
         try {
@@ -164,16 +165,19 @@ var Main = function () {
           canvas.classList.add('active');
           if (dragdrop) dragdrop.classList.add('hidden');
           document.body.classList.add('transmitting');
+          document.documentElement.classList.add('transmitting');
           window.scrollTo(0, 0);
           Main.togglePause(false);
           Main.resize();
         } else {
           document.body.classList.remove('transmitting');
+          document.documentElement.classList.remove('transmitting');
           if (dragdrop) dragdrop.classList.remove('hidden');
           if (canvas) canvas.classList.remove('active');
         }
       } else {
         document.body.classList.remove('transmitting');
+        document.documentElement.classList.remove('transmitting');
         if (fileTabBtn) fileTabBtn.classList.remove('active');
         if (textTabBtn) textTabBtn.classList.add('active');
         if (dragdrop) dragdrop.classList.add('hidden');
@@ -188,6 +192,9 @@ var Main = function () {
             Main.onQRTextInput();
           }
         }
+      }
+      if (typeof window.updateScrollState === 'function') {
+        window.updateScrollState();
       }
     },
 

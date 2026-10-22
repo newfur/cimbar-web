@@ -2,14 +2,14 @@
 const i18nDict = {
     en: {
         // Shared
-        "title_hub": "CIMBAR - Offline Browser File Transfer",
-        "title_send": "Cimbar File Sender",
-        "title_recv": "Cimbar File Receiver",
+        "title_hub": "QR Code Transfer Hub - Offline Browser File Transfer",
+        "title_send": "QR Code Transfer Hub - File Sender",
+        "title_recv": "QR Code Transfer Hub - File Receiver",
         "back_to_hub": "Back to Hub",
         "fullscreen": "Fullscreen Mode",
         
         // Hub (index.html)
-        "hub_main_title": "Cimbar Transfer Hub",
+        "hub_main_title": "QR Code Transfer Hub",
         "hub_subtitle": "Completely offline, cross-device file transfer in the browser using dynamic color barcodes (no network required)",
         "hub_sender": "File Sender",
         "hub_sender_desc": "Select a local file and encode it into a stream of dynamic color barcodes playing on the screen (fully offline).",
@@ -17,6 +17,25 @@ const i18nDict = {
         "hub_receiver": "File Receiver",
         "hub_receiver_desc": "Use your device camera to scan the dynamic barcodes on the screen, decode in real-time, and instantly download the reconstructed file (fully offline).",
         "hub_btn_recv": "Start Receiving",
+
+        // About Modal
+        "about_btn": "About",
+        "about_tagline": "Pure Client-Side Offline Transfer Tool",
+        "about_desc": "A pure client-side offline file transfer tool powered by dynamic color barcodes and high-capacity static QR codes. Operates without Wi-Fi, Bluetooth, or cloud servers—data travels via screen light and camera capture across air-gapped devices.",
+        "about_sec_features": "🌟 Key Features",
+        "about_feat1_title": "100% Offline & Air-Gapped",
+        "about_feat1_desc": "No network connection required. Zero data uploaded to cloud, fully protecting against remote sniffing and leaks.",
+        "about_feat2_title": "Dual-Mode Transmission",
+        "about_feat2_desc": "Supports Cimbar dynamic color barcodes (high-speed streaming for large files) and high-capacity static QR codes (up to 2,953 bytes for text/URLs).",
+        "about_feat3_title": "Pure Client-Side Computation",
+        "about_feat3_desc": "Accelerated with WebAssembly and HTML5 Canvas hardware rendering. Encodes and decodes locally in seconds.",
+        "about_feat4_title": "Single-File Standalone Portable",
+        "about_feat4_desc": "Available as a single standalone HTML file. Copy to USB or mobile devices for instant cross-platform use.",
+        "about_sec_info": "ℹ️ Version & License",
+        "about_lbl_version": "Version",
+        "about_lbl_license": "License",
+        "about_lbl_credits": "Credits",
+        "about_close": "Close",
 
         // Send Page (send.html)
         "send_status_ready": "Ready",
@@ -70,14 +89,14 @@ const i18nDict = {
     },
     zh: {
         // Shared
-        "title_hub": "CIMBAR 浏览器端无网文件传输工具",
-        "title_send": "Cimbar 文件发送端",
-        "title_recv": "Cimbar 文件接收端",
+        "title_hub": "二维码传输中心 - 浏览器端无网文件传输工具",
+        "title_send": "二维码传输中心 - 发送端",
+        "title_recv": "二维码传输中心 - 接收端",
         "back_to_hub": "返回大厅",
         "fullscreen": "全屏展示模式",
 
         // Hub (index.html)
-        "hub_main_title": "Cimbar 传输中心",
+        "hub_main_title": "二维码传输中心",
         "hub_subtitle": "在浏览器中使用彩色条形码进行完全离线、跨设备的文件传输（无需任何网络连接）",
         "hub_sender": "文件发送端",
         "hub_sender_desc": "选择一个本地文件，将其编码为在屏幕上播放的动态彩色条形码流（完全离线）。",
@@ -85,6 +104,25 @@ const i18nDict = {
         "hub_receiver": "文件接收端",
         "hub_receiver_desc": "使用设备摄像头扫描屏幕上的动态条形码，实时解码并瞬间下载重组后的文件（完全离线）。",
         "hub_btn_recv": "开始接收",
+
+        // About Modal
+        "about_btn": "关于",
+        "about_tagline": "纯前端无网跨设备传输工具",
+        "about_desc": "基于动态彩色条形码与标准静态二维码构建的纯前端离线传输工具。无需 Wi-Fi、蓝牙或任何云端服务器，仅通过屏幕光线与摄像头扫描，即可在物理隔离设备间实现极速、安全的文件与文本互传。",
+        "about_sec_features": "🌟 核心特性",
+        "about_feat1_title": "完全离线与物理隔离 (Air-Gapped)",
+        "about_feat1_desc": "不建立任何网络连接，零数据上云，彻底阻断远程抓包与监听风险。",
+        "about_feat2_title": "双模式智能引擎",
+        "about_feat2_desc": "支持 Cimbar 动态彩色条码（流式传输大文件）与高容量静态二维码（单张容纳最高 2,953 字节文本/链接）。",
+        "about_feat3_title": "纯客户端高速运算",
+        "about_feat3_desc": "基于 WebAssembly 与 HTML5 Canvas 硬件渲染，秒级编码解码，即开即用。",
+        "about_feat4_title": "单文件离线便携运行",
+        "about_feat4_desc": "提供单文件独立版 HTML，直接复制到 U 盘或手机即可跨平台使用。",
+        "about_sec_info": "ℹ️ 版本与协议信息",
+        "about_lbl_version": "当前版本",
+        "about_lbl_license": "开源协议",
+        "about_lbl_credits": "技术支持",
+        "about_close": "关闭",
 
         // Send Page (send.html)
         "send_status_ready": "准备就绪",
@@ -240,3 +278,20 @@ class I18nManager {
 
 window.I18n = new I18nManager();
 window.I18n.init();
+
+// Global About Modal helpers
+window.openAboutModal = function() {
+    var modal = document.getElementById('about-modal');
+    if (modal) modal.classList.remove('hidden');
+};
+
+window.closeAboutModal = function() {
+    var modal = document.getElementById('about-modal');
+    if (modal) modal.classList.add('hidden');
+};
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' || e.key === 'Esc') {
+        window.closeAboutModal();
+    }
+});

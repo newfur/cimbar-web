@@ -230,7 +230,7 @@ def main():
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <title>CIMBAR 浏览器端无网文件传输工具 (单文件版)</title>
+  <title>二维码传输中心 (单文件版)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   
   <script type="text/javascript">
@@ -293,16 +293,58 @@ def main():
       flex-direction: column;
       align-items: center;
       justify-content: flex-start !important;
-      min-height: 100dvh;
       box-sizing: border-box;
       position: relative;
-      padding: max(1rem, env(safe-area-inset-top)) 1rem 2rem 1rem !important;
     }}
     #view-hub.active {{
       flex-direction: column;
       align-items: center;
       justify-content: flex-start !important;
-      padding: clamp(2rem, 5vh, 4rem) 1.5rem 2.5rem 1.5rem !important;
+      box-sizing: border-box;
+    }}
+
+    @media (min-width: 769px) and (min-height: 580px) {{
+      html, body {{
+        height: 100dvh !important;
+        overflow: hidden !important;
+      }}
+      body {{
+        padding: 0 !important;
+      }}
+      #view-send.active {{
+        height: 100dvh !important;
+        overflow: hidden !important;
+        padding: 20px 1rem 1rem 1rem !important;
+      }}
+      #view-hub.active {{
+        height: 100dvh !important;
+        overflow: hidden !important;
+        justify-content: center !important;
+        padding: 0 1.5rem !important;
+      }}
+    }}
+
+    @media (max-width: 768px), (max-height: 579px) {{
+      html, body {{
+        min-height: 100dvh;
+        height: auto;
+        overflow-y: auto;
+      }}
+      body {{
+        padding: 0 !important;
+      }}
+      #view-send.active {{
+        min-height: 100dvh;
+        height: auto;
+        overflow-y: auto;
+        padding: max(1rem, env(safe-area-inset-top)) 1rem 2.5rem 1rem !important;
+      }}
+      #view-hub.active {{
+        min-height: 100dvh;
+        height: auto;
+        overflow-y: auto;
+        padding: max(1rem, env(safe-area-inset-top)) 1.5rem 2.5rem 1.5rem !important;
+      }}
     }}
     
     /* Unified index/send/recv CSS sheets */
@@ -442,23 +484,41 @@ def main():
   <!-- Router logic and event overrides -->
   <script type="text/javascript">
     // View routing controller
-    function showView(viewId) {{
-      console.log("Routing to view: " + viewId);
+    var currentView = 'hub';
+
+    function updateScrollState(viewId) {{
+      if (!viewId) viewId = currentView;
+      var isDesktop = window.innerWidth > 768 && window.innerHeight >= 580;
+      var isTransmitting = document.body.classList.contains('transmitting');
       
-      // Control scrollability and height behavior dynamically to prevent browser chrome/notch overlaps
-      if (viewId === 'hub' || viewId === 'send') {{
-        if (!document.body.classList.contains('transmitting')) {{
-          document.body.style.overflow = 'auto';
-          document.documentElement.style.overflow = 'auto';
-        }}
-        document.body.style.height = 'auto';
-        document.documentElement.style.height = 'auto';
-      }} else {{
+      if (viewId === 'recv' || isTransmitting) {{
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
         document.body.style.height = '100dvh';
         document.documentElement.style.height = '100dvh';
+      }} else if (viewId === 'send' || viewId === 'hub') {{
+        if (isDesktop) {{
+          document.body.style.overflow = 'hidden';
+          document.documentElement.style.overflow = 'hidden';
+          document.body.style.height = '100dvh';
+          document.documentElement.style.height = '100dvh';
+        }} else {{
+          document.body.style.overflow = 'auto';
+          document.documentElement.style.overflow = 'auto';
+          document.body.style.height = 'auto';
+          document.documentElement.style.height = 'auto';
+        }}
       }}
+    }}
+    window.updateScrollState = updateScrollState;
+    window.addEventListener('resize', function() {{
+      updateScrollState(currentView);
+    }});
+
+    function showView(viewId) {{
+      console.log("Routing to view: " + viewId);
+      currentView = viewId;
+      updateScrollState(viewId);
 
       // Strictly isolate views: only target view gets active and display:flex; all others hidden
       var viewIds = ['hub', 'send', 'recv'];
@@ -493,6 +553,7 @@ def main():
       // If switching to Hub, reset sender state so previous barcodes don't linger
       if (viewId === 'hub') {{
         document.body.classList.remove('transmitting');
+        document.documentElement.classList.remove('transmitting');
         if (typeof Main !== 'undefined' && typeof Main.reset === 'function') {{
           Main.reset();
         }}
@@ -553,6 +614,8 @@ def main():
         sendHomeBtn.onclick = (e) => {{
           if (e) e.preventDefault();
           document.body.classList.remove('transmitting');
+          document.documentElement.classList.remove('transmitting');
+          updateScrollState('hub');
           if (typeof Main !== 'undefined' && typeof Main.reset === 'function') {{
             Main.reset();
           }}
@@ -601,6 +664,8 @@ def main():
             canvas.classList.add('has-file');
           }}
           document.body.classList.add('transmitting');
+          document.documentElement.classList.add('transmitting');
+          updateScrollState();
           window.scrollTo(0, 0);
           if (typeof Main !== 'undefined') {{
             Main.switchTab('file');
@@ -624,6 +689,8 @@ def main():
             canvas.classList.add('has-file');
           }}
           document.body.classList.add('transmitting');
+          document.documentElement.classList.add('transmitting');
+          updateScrollState();
           window.scrollTo(0, 0);
           if (typeof Main !== 'undefined') {{
             Main.togglePause(false);
@@ -726,6 +793,11 @@ def main():
     with open(web_portable, 'w', encoding='utf-8') as f:
         f.write(standalone_html)
     print(f"Synced portable file to: {web_portable}")
+
+    zh_portable = '二维码传输中心.html'
+    with open(zh_portable, 'w', encoding='utf-8') as f:
+        f.write(standalone_html)
+    print(f"Synced portable file to: {zh_portable}")
 
 if __name__ == '__main__':
     main()

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <title>CIMBAR 浏览器端无网文件传输工具 (单文件版)</title>
+  <title>二维码传输中心 (单文件版)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   
   <script type="text/javascript">
@@ -65,16 +65,58 @@
       flex-direction: column;
       align-items: center;
       justify-content: flex-start !important;
-      min-height: 100dvh;
       box-sizing: border-box;
       position: relative;
-      padding: max(1rem, env(safe-area-inset-top)) 1rem 2rem 1rem !important;
     }
     #view-hub.active {
       flex-direction: column;
       align-items: center;
       justify-content: flex-start !important;
-      padding: clamp(2rem, 5vh, 4rem) 1.5rem 2.5rem 1.5rem !important;
+      box-sizing: border-box;
+    }
+
+    @media (min-width: 769px) and (min-height: 580px) {
+      html, body {
+        height: 100dvh !important;
+        overflow: hidden !important;
+      }
+      body {
+        padding: 0 !important;
+      }
+      #view-send.active {
+        height: 100dvh !important;
+        overflow: hidden !important;
+        padding: 20px 1rem 1rem 1rem !important;
+      }
+      #view-hub.active {
+        height: 100dvh !important;
+        overflow: hidden !important;
+        justify-content: center !important;
+        padding: 0 1.5rem !important;
+      }
+    }
+
+    @media (max-width: 768px), (max-height: 579px) {
+      html, body {
+        min-height: 100dvh;
+        height: auto;
+        overflow-y: auto;
+      }
+      body {
+        padding: 0 !important;
+      }
+      #view-send.active {
+        min-height: 100dvh;
+        height: auto;
+        overflow-y: auto;
+        padding: max(1rem, env(safe-area-inset-top)) 1rem 2.5rem 1rem !important;
+      }
+      #view-hub.active {
+        min-height: 100dvh;
+        height: auto;
+        overflow-y: auto;
+        padding: max(1rem, env(safe-area-inset-top)) 1.5rem 2.5rem 1.5rem !important;
+      }
     }
     
     /* Unified index/send/recv CSS sheets */
@@ -186,9 +228,10 @@
     @media (max-width: 768px) {
       body {
         justify-content: flex-start !important;
-        padding: max(1.5rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-left)) max(2.5rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-right));
+        padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-left)) max(2.5rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-right));
       }
       header {
+        margin-top: clamp(2.8rem, 7.5vh, 4.2rem);
         margin-bottom: 1.5rem;
       }
       .main-container {
@@ -465,27 +508,286 @@
         transform: translateY(0);
       }
     }
-    /* i18n toggle button */
-  #i18n-toggle {
+    /* Top-right action buttons */
+  .top-actions-bar {
     position: absolute;
     top: 20px;
     right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 100;
+  }
+  .top-btn {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     color: var(--text-main);
-    padding: 8px 12px;
+    padding: 8px 14px;
     border-radius: 20px;
     cursor: pointer;
     font-size: 0.9rem;
     font-weight: 500;
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     transition: all 0.2s ease;
-    z-index: 100;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    line-height: 1;
   }
-  #i18n-toggle:hover {
-    background: rgba(255, 255, 255, 0.9);
+  .top-btn:hover {
+    background: rgba(255, 255, 255, 0.95);
     transform: translateY(-1px);
+    border-color: var(--accent-purple);
+    color: var(--accent-purple);
     box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+  }
+  .top-btn svg {
+    display: block;
+    width: 16px;
+    height: 16px;
+  }
+
+  /* About Modal Styles */
+  .about-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1.5rem;
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  .about-modal-card {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 25px 50px -12px rgba(124, 58, 237, 0.25);
+    border-radius: 24px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 88vh;
+    padding: 1.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-sizing: border-box;
+  }
+
+  @keyframes popIn {
+    0% { transform: scale(0.92); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .about-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 0.8rem;
+    flex-shrink: 0;
+  }
+
+  .about-modal-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    min-width: 0;
+  }
+
+  .about-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(124, 58, 237, 0.15) 100%);
+    color: var(--accent-purple);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .about-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .about-title-wrap h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.25;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .about-sub-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .about-version-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: rgba(124, 58, 237, 0.1);
+    border: 1px solid var(--glass-border);
+    color: var(--accent-purple);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .about-tagline {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .about-modal-close {
+    background: transparent;
+    border: none;
+    font-size: 1.3rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    line-height: 1;
+    padding: 6px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .about-modal-close:hover {
+    color: var(--text-main);
+    background: rgba(124, 58, 237, 0.08);
+  }
+
+  .about-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    line-height: 1.55;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 4px;
+    max-height: 56vh;
+  }
+
+  .about-intro {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .about-section {
+    background: rgba(124, 58, 237, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .about-section-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--accent-purple);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .about-feature-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.86rem;
+  }
+
+  .about-feature-item .icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .about-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    padding: 0.2rem 0;
+  }
+
+  .about-meta-val {
+    font-weight: 600;
+    color: var(--text-main);
+  }
+
+  .about-footer {
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid var(--glass-border);
+    padding-top: 0.8rem;
+    flex-shrink: 0;
+  }
+
+  .btn-about-close {
+    padding: 0.6rem 1.5rem;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 0.92rem;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25);
+    transition: all 0.2s;
+  }
+
+  .btn-about-close:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  @media (max-width: 768px) {
+    .top-actions-bar {
+      top: max(14px, env(safe-area-inset-top));
+      right: max(16px, env(safe-area-inset-right));
+      gap: 8px;
+    }
+    .top-btn {
+      padding: 6px 12px;
+      font-size: 0.84rem;
+      border-radius: 12px;
+    }
+    .about-modal-card {
+      padding: 1.25rem;
+      border-radius: 20px;
+      max-height: 84vh;
+    }
+    .about-body {
+      max-height: 52vh;
+    }
   }
 
     
@@ -524,10 +826,30 @@
       transition: opacity 0.4s ease-in;
       margin: 0;
       position: relative;
-      overflow-y: auto;
-      padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(2.5rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
     }
 
+    @media (min-width: 769px) and (min-height: 580px) {
+      html, body {
+        height: 100dvh;
+        overflow: hidden;
+      }
+      body {
+        padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 20px max(20px, env(safe-area-inset-left));
+      }
+    }
+
+    @media (max-width: 768px), (max-height: 579px) {
+      html, body {
+        min-height: 100dvh;
+        height: auto;
+        overflow-y: auto;
+      }
+      body {
+        padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(2.5rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+      }
+    }
+
+    html.transmitting,
     body.transmitting {
       overflow: hidden !important;
     }
@@ -567,13 +889,16 @@
       background: rgba(255, 255, 255, 0.6);
       border: 1px solid var(--glass-border);
       color: var(--text-main);
-      padding: 0.6rem 1.2rem;
+      height: 42px;
+      box-sizing: border-box;
+      padding: 0 1.2rem;
       border-radius: 12px;
       text-decoration: none;
       font-size: 0.9rem;
       font-weight: 500;
-      display: flex;
+      display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 0.5rem;
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
@@ -632,7 +957,7 @@
       justify-content: center;
       min-height: 280px;
       z-index: 2;
-      margin-top: 1rem;
+      margin: clamp(2.5rem, 10vh, 6rem) auto 0 auto;
     }
 
     #dragdrop:hover {
@@ -697,29 +1022,36 @@
     .send-header-bar {
       width: 100%;
       max-width: 1060px;
-      margin: 0.2rem auto 1.2rem auto;
-      z-index: 12;
+      margin: 0 auto 1.2rem auto;
+      z-index: 25;
       position: relative;
+      height: 48px;
     }
 
     .send-top-nav-row {
       display: block;
     }
 
-    /* Top Segmented Tab Controller */
+    /* Top Segmented Tab Controller (Fixed in sync with Back-to-Hub button) */
     .send-tabs-container {
-      margin: 0 auto;
-      z-index: 12;
+      position: fixed;
+      top: max(20px, env(safe-area-inset-top));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 25;
       display: flex;
       justify-content: center;
     }
 
     .send-tabs {
-      display: flex;
+      display: inline-flex;
+      align-items: center;
+      height: 42px;
+      box-sizing: border-box;
       background: rgba(255, 255, 255, 0.7);
       border: 1px solid var(--glass-border);
-      padding: 4px;
-      border-radius: 16px;
+      padding: 3px;
+      border-radius: 14px;
       backdrop-filter: blur(15px);
       -webkit-backdrop-filter: blur(15px);
       box-shadow: 0 4px 20px rgba(124, 58, 237, 0.08);
@@ -727,16 +1059,19 @@
     }
 
     .tab-btn {
-      display: flex;
+      display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
-      padding: 0.5rem 1rem;
+      height: 100%;
+      box-sizing: border-box;
+      padding: 0 1rem;
       border: none;
       background: transparent;
       color: var(--text-muted);
       font-size: 0.9rem;
       font-weight: 500;
-      border-radius: 12px;
+      border-radius: 10px;
       cursor: pointer;
       transition: all 0.25s ease;
       white-space: nowrap;
@@ -753,24 +1088,32 @@
       box-shadow: 0 2px 8px rgba(124, 58, 237, 0.12);
     }
 
-    /* Dual-Card Static QR Hub Layout (matching index.html card style and size) */
+    /* Dual-Card Static QR Hub Layout (dynamically responsive to viewport dimensions) */
+    :root {
+      --qr-card-pad-h: clamp(1rem, 1.5vw, 1.4rem);
+      --qr-card-pad-v: clamp(0.85rem, 1.3vh, 1.25rem);
+      --qr-card-gap: clamp(1rem, 1.8vw, 1.8rem);
+    }
+
     #text-card {
-      max-width: 1060px;
+      --qr-card-size: clamp(220px, min(calc(46vw - 45px), calc(100dvh - 290px)), 520px);
+      max-width: min(1360px, calc(2 * var(--qr-card-size) + var(--qr-card-gap) + 4 * var(--qr-card-pad-h)));
       width: 100%;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.8rem;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: var(--qr-card-gap);
       margin: 0 auto;
       z-index: 2;
       box-sizing: border-box;
       align-items: stretch;
+      transition: max-width 0.25s ease;
     }
 
     .qr-side-card {
       background: var(--glass-bg);
       border: 1px solid var(--glass-border);
       border-radius: 24px;
-      padding: 1.4rem 1.5rem 1.3rem;
+      padding: var(--qr-card-pad-v) var(--qr-card-pad-h);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       box-shadow: 0 16px 40px rgba(124, 58, 237, 0.07);
@@ -780,6 +1123,7 @@
       position: relative;
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       box-sizing: border-box;
+      min-width: 0;
     }
 
     .qr-side-card:hover {
@@ -792,7 +1136,7 @@
       flex-direction: row;
       align-items: center;
       gap: 12px;
-      margin-bottom: 0.9rem;
+      margin-bottom: 0.7rem;
       width: 100%;
       text-align: left;
     }
@@ -849,25 +1193,31 @@
       line-height: 1.35;
       margin-top: 2px;
       margin-bottom: 0;
-      white-space: nowrap;
+      white-space: normal;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .qr-textarea {
       width: 100%;
-      height: 380px;
+      height: auto;
+      aspect-ratio: 1 / 1;
+      min-height: 200px;
       box-sizing: border-box;
       border: 1px solid var(--glass-border);
       background: rgba(255, 255, 255, 0.9);
-      border-radius: 16px;
-      padding: 1rem 1.1rem;
+      border-radius: 18px;
+      padding: clamp(0.85rem, 1.2vw, 1.1rem) clamp(0.95rem, 1.2vw, 1.2rem);
       font-family: inherit;
-      font-size: 0.95rem;
+      font-size: clamp(0.88rem, 0.95vw, 0.98rem);
       color: var(--text-main);
       resize: none;
       outline: none;
-      transition: all 0.25s;
+      overflow-y: auto;
+      transition: border-color 0.25s, box-shadow 0.25s, background-color 0.25s;
       line-height: 1.55;
     }
 
@@ -972,10 +1322,10 @@
       box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
     }
 
-    /* Large 1:1 Square QR Preview Box (matches textarea dimensions) */
+    /* Large 1:1 Square QR Preview Box (matches textarea dimensions dynamically) */
     .qr-display-inner {
       background: #ffffff;
-      padding: 10px;
+      padding: clamp(8px, 1.2vw, 14px);
       border-radius: 18px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
       display: flex;
@@ -983,11 +1333,13 @@
       justify-content: center;
       border: 1px solid var(--glass-border);
       width: 100%;
-      height: 380px;
-      max-width: 380px;
+      height: auto;
+      max-width: none;
       aspect-ratio: 1 / 1;
+      min-height: 200px;
       box-sizing: border-box;
       margin: 0 auto;
+      transition: all 0.2s ease;
     }
 
     #qrcode-render-target {
@@ -1028,12 +1380,12 @@
     /* Actions Row under QR */
     .qr-actions-row {
       display: flex;
-      gap: 0.5rem;
+      gap: 0.45rem;
       flex-wrap: wrap;
       justify-content: space-between;
       width: 100%;
-      max-width: 380px;
-      margin: 0.8rem auto 0 auto;
+      margin: 0.7rem auto 0 auto;
+      box-sizing: border-box;
     }
 
     .btn-qr-action {
@@ -1141,24 +1493,29 @@
     /* Responsive Grid */
     @media (max-width: 860px) {
       #text-card {
+        --qr-card-size: clamp(220px, min(86vw, 360px), 400px);
         grid-template-columns: 1fr;
-        gap: 1.4rem;
+        gap: 1.2rem;
         max-width: 480px;
         margin-bottom: 2rem;
       }
       .qr-side-card {
-        padding: 1.2rem 1.2rem;
+        padding: 1.1rem 1.1rem;
       }
       .qr-textarea {
-        height: 280px;
+        height: clamp(200px, 28vh, 300px);
+        aspect-ratio: auto;
+        min-height: 180px;
       }
       .qr-display-inner {
         width: 100%;
-        max-width: 320px;
-        height: 320px;
+        height: auto;
+        max-width: var(--qr-card-size);
+        aspect-ratio: 1 / 1;
+        min-height: auto;
       }
       .qr-actions-row {
-        max-width: 320px;
+        max-width: var(--qr-card-size);
       }
     }
 
@@ -1208,55 +1565,6 @@
       margin-left: 0.4rem;
     }
 
-    @media (max-width: 768px) {
-      .send-header-bar {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.65rem;
-        margin: 0.2rem auto 1rem auto;
-        width: 100%;
-        max-width: 480px;
-      }
-
-      .send-top-nav-row {
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        width: 100%;
-      }
-
-      .btn-home {
-        position: static !important;
-        transform: none !important;
-        margin: 0 !important;
-        align-self: flex-start;
-        padding: 0.45rem 0.85rem;
-        font-size: 0.82rem;
-      }
-
-      .send-tabs-container {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        margin: 0 auto;
-      }
-
-      .send-tabs {
-        width: 100%;
-        max-width: 360px;
-        box-sizing: border-box;
-      }
-
-      .tab-btn {
-        flex: 1;
-        justify-content: center;
-        padding: 0.45rem 0.5rem;
-        font-size: 0.82rem;
-        gap: 4px;
-      }
-    }
-
     .hidden {
       display: none !important;
     }
@@ -1291,7 +1599,7 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
-      z-index: 20;
+      z-index: 35;
     }
 
     #send-nav-container .bg {
@@ -1326,8 +1634,9 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      height: 48px;
-      width: 48px;
+      height: 42px;
+      width: 42px;
+      box-sizing: border-box;
       border-radius: 12px;
       cursor: pointer;
       pointer-events: auto;
@@ -1520,6 +1829,92 @@
     #send-nav-content li.small-link a:hover {
       color: var(--text-main);
     }
+
+    @media (max-width: 768px) {
+      .send-header-bar {
+        position: relative !important;
+        top: auto !important;
+        background: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        box-shadow: none !important;
+        border: none !important;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0 !important;
+        margin: 0 auto 1.2rem auto;
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      .send-top-nav-row {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        width: auto;
+        max-width: fit-content;
+        align-self: flex-start;
+        height: 38px;
+        pointer-events: none;
+      }
+
+      .btn-home {
+        position: static !important;
+        transform: none !important;
+        margin: 0 !important;
+        height: 38px !important;
+        padding: 0 0.9rem !important;
+        font-size: 0.85rem !important;
+        border-radius: 12px !important;
+        pointer-events: auto;
+        z-index: 15;
+      }
+
+      .send-tabs-container {
+        position: static !important;
+        top: auto !important;
+        left: auto !important;
+        transform: none !important;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin: 0 auto;
+        pointer-events: none;
+      }
+
+      .send-tabs {
+        width: 100%;
+        max-width: 360px;
+        height: 38px !important;
+        box-sizing: border-box;
+        padding: 3px;
+        pointer-events: auto;
+      }
+
+      .tab-btn {
+        flex: 1;
+        height: 100% !important;
+        justify-content: center;
+        padding: 0 0.5rem;
+        font-size: 0.82rem;
+        gap: 4px;
+        pointer-events: auto;
+      }
+
+      #send-nav-button {
+        position: fixed !important;
+        top: max(16px, env(safe-area-inset-top)) !important;
+        right: max(16px, env(safe-area-inset-right)) !important;
+        height: 38px !important;
+        width: 38px !important;
+        z-index: 35 !important;
+      }
+    }
   
     
     :root {
@@ -1549,19 +1944,44 @@
       color: var(--text-main);
     }
 
+    /* Ambient background glows */
+    .glow-sphere {
+      position: fixed;
+      width: 350px;
+      height: 350px;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.25;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .glow-cyan {
+      top: 10%;
+      left: 15%;
+      background: var(--accent-cyan);
+    }
+    .glow-purple {
+      bottom: 5%;
+      right: 10%;
+      background: var(--accent-purple);
+    }
+
+    /* Camera Viewfinder (perfectly matching dynamic barcode canvas area and style) */
     #container {
-      position: absolute;
-      top: 50%;
+      position: fixed;
+      top: calc(50% + 20px);
       left: 50%;
       transform: translate(-50%, -50%);
-      width: calc(100vmin - 10px);
-      height: calc(100vmin - 10px);
-      border-radius: 28px;
+      width: min(calc(100vw - 40px), calc(100dvh - 150px));
+      height: min(calc(100vw - 40px), calc(100dvh - 150px));
+      aspect-ratio: 1 / 1;
+      border-radius: 16px;
       overflow: hidden;
-      border: 4px solid var(--glass-border);
-      box-shadow: 0 20px 50px rgba(124, 58, 237, 0.15);
+      border: 3px solid var(--glass-border);
+      box-shadow: 0 20px 60px rgba(124, 58, 237, 0.15);
       z-index: 2;
       background: #000;
+      transition: width 0.2s ease, height 0.2s ease;
     }
 
     video {
@@ -1620,13 +2040,16 @@
       background: rgba(255, 255, 255, 0.6);
       border: 1px solid var(--glass-border);
       color: var(--text-main);
-      padding: 0.6rem 1.2rem;
+      height: 42px;
+      box-sizing: border-box;
+      padding: 0 1.2rem;
       border-radius: 12px;
       text-decoration: none;
       font-size: 0.9rem;
       font-weight: 500;
-      display: flex;
+      display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 0.5rem;
       backdrop-filter: blur(15px);
       -webkit-backdrop-filter: blur(15px);
@@ -1648,7 +2071,7 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
-      z-index: 20;
+      z-index: 35;
     }
 
     #recv-nav-container .bg {
@@ -1681,8 +2104,9 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      height: 44px;
-      width: 44px;
+      height: 42px;
+      width: 42px;
+      box-sizing: border-box;
       border-radius: 12px;
       cursor: pointer;
       pointer-events: auto;
@@ -1881,16 +2305,18 @@
     #tdec { color: var(--accent-cyan); }
     #framesInFlight { color: var(--accent-yellow); }
 
-    /* Progress Overlay */
+    /* Progress Overlay matching container width */
     #progress_bars {
       position: fixed;
       bottom: 25px;
-      left: 20px;
-      right: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(calc(100vw - 40px), calc(100dvh - 150px));
       z-index: 15;
       display: flex;
       flex-direction: column;
       gap: 8px;
+      transition: width 0.2s ease;
     }
 
     .progress {
@@ -2155,6 +2581,22 @@
     .hidden {
       display: none !important;
     }
+
+    @media (max-width: 768px) {
+      .btn-home {
+        height: 38px;
+        padding: 0 0.9rem;
+        font-size: 0.85rem;
+        top: max(16px, env(safe-area-inset-top));
+        left: max(16px, env(safe-area-inset-left));
+      }
+      #recv-nav-button {
+        height: 38px;
+        width: 38px;
+        top: max(16px, env(safe-area-inset-top));
+        right: max(16px, env(safe-area-inset-right));
+      }
+    }
   
   </style>
 </head>
@@ -2162,15 +2604,108 @@
 
   <!-- VIEW 1: Portal Hub Landing Page -->
   <div id="view-hub" class="view-container active">
-    <button id="i18n-toggle" title="Switch Language">🌐 En</button>
+    <div class="top-actions-bar">
+    <button type="button" id="i18n-toggle" class="top-btn" title="Switch Language">🌐 En</button>
+    <button type="button" id="btn-about" class="top-btn" onclick="openAboutModal()" title="关于">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span data-i18n="about_btn">关于</span>
+    </button>
+  </div>
 
   <div class="glow-sphere glow-cyan"></div>
   <div class="glow-sphere glow-purple"></div>
 
   <header>
-    <h1><span data-i18n="hub_main_title">Cimbar 传输中心</span><span class="version-badge">v1.0.0</span></h1>
+    <h1><span data-i18n="hub_main_title">二维码传输中心</span></h1>
     <p data-i18n="hub_subtitle">在浏览器中使用彩色条形码进行完全离线、跨设备的文件传输（无需任何网络连接）</p>
   </header>
+
+  <!-- About Modal -->
+  <div id="about-modal" class="about-modal hidden" onclick="if (event.target === this) closeAboutModal();">
+    <div class="about-modal-card" onclick="event.stopPropagation()">
+      <div class="about-modal-header">
+        <div class="about-modal-header-left">
+          <div class="about-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+            </svg>
+          </div>
+          <div class="about-title-wrap">
+            <h3 data-i18n="hub_main_title">二维码传输中心</h3>
+            <div class="about-sub-row">
+              <span class="about-version-badge">v1.0.0</span>
+              <span class="about-tagline" data-i18n="about_tagline">纯前端无网跨设备传输工具</span>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="about-modal-close" onclick="closeAboutModal()" title="Close">✕</button>
+      </div>
+
+      <div class="about-body">
+        <p class="about-intro" data-i18n="about_desc">
+          基于动态彩色条形码与标准静态二维码构建的纯前端离线传输工具。无需 Wi-Fi、蓝牙或任何云端服务器，仅通过屏幕光线与摄像头扫描，即可在物理隔离设备间实现极速、安全的文件与文本互传。
+        </p>
+
+        <div class="about-section">
+          <div class="about-section-title">
+            <span data-i18n="about_sec_features">🌟 核心特性</span>
+          </div>
+          <div class="about-feature-item">
+            <span class="icon">🛡️</span>
+            <div>
+              <strong data-i18n="about_feat1_title">完全离线与物理隔离 (Air-Gapped)</strong>：
+              <span data-i18n="about_feat1_desc">不建立任何网络连接，零数据上云，彻底阻断远程抓包与监听风险。</span>
+            </div>
+          </div>
+          <div class="about-feature-item">
+            <span class="icon">⚡</span>
+            <div>
+              <strong data-i18n="about_feat2_title">双模式智能引擎</strong>：
+              <span data-i18n="about_feat2_desc">支持 Cimbar 动态彩色条码（流式传输大文件）与高容量静态二维码（单张容纳最高 2,953 字节文本/链接）。</span>
+            </div>
+          </div>
+          <div class="about-feature-item">
+            <span class="icon">🚀</span>
+            <div>
+              <strong data-i18n="about_feat3_title">纯客户端高速运算</strong>：
+              <span data-i18n="about_feat3_desc">基于 WebAssembly 与 HTML5 Canvas 硬件渲染，秒级编码解码，即开即用。</span>
+            </div>
+          </div>
+          <div class="about-feature-item">
+            <span class="icon">📦</span>
+            <div>
+              <strong data-i18n="about_feat4_title">单文件离线便携运行</strong>：
+              <span data-i18n="about_feat4_desc">提供单文件独立版 HTML，直接复制到 U 盘或手机即可跨平台使用。</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="about-section">
+          <div class="about-section-title">
+            <span data-i18n="about_sec_info">ℹ️ 版本与协议信息</span>
+          </div>
+          <div class="about-meta-row">
+            <span data-i18n="about_lbl_version">当前版本</span>
+            <span class="about-meta-val">v1.0.0 (Release)</span>
+          </div>
+          <div class="about-meta-row">
+            <span data-i18n="about_lbl_license">开源协议</span>
+            <span class="about-meta-val">MIT License</span>
+          </div>
+          <div class="about-meta-row">
+            <span data-i18n="about_lbl_credits">技术支持</span>
+            <span class="about-meta-val">Cimbar (libcimbar) · Nayuki QR · jsQR</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-footer">
+        <button type="button" class="btn-about-close" onclick="closeAboutModal()" data-i18n="about_close">关闭</button>
+      </div>
+    </div>
+  </div>
 
   <main class="main-container">
     
@@ -2408,7 +2943,7 @@
         </li>
         <li class="small-link"><a href="javascript:void(0)" onclick="Main.toggleFullscreen()" data-i18n="fullscreen">全屏展示模式</a></li>
         <li class="small" style="margin-top:auto; text-align:center; padding-top:1rem; border-top:1px solid var(--glass-border);">
-          <span style="font-size:0.8rem; color:var(--text-muted); font-weight:500;">Cimbar Web <span class="version-badge">v1.0.0</span></span>
+          <span style="font-size:0.8rem; color:var(--text-muted); font-weight:500;"><span data-i18n="hub_main_title">二维码传输中心</span> <span class="version-badge">v1.0.0</span></span>
         </li>
       </ul>
     </div>
@@ -2434,7 +2969,11 @@
 
   <!-- VIEW 3: File Receiver (Camera) -->
   <div id="view-recv" class="view-container" style="display: none !important;">
-    <!-- Camera Stream Viewfinder -->
+    <!-- Ambient background glows -->
+  <div class="glow-sphere glow-cyan"></div>
+  <div class="glow-sphere glow-purple"></div>
+
+  <!-- Camera Stream Viewfinder -->
   <div id="container">
     <video id="video" autoplay="true" playsinline="true" muted="true"></video>
     <!-- Target bracket overlay corner points inside container -->
@@ -2465,7 +3004,7 @@
         <li><a href="javascript:void(0)" onclick="Recv.toggleDebugPanel()" data-i18n="recv_toggle_debug">切换调试面板</a></li>
         <li><a href="javascript:void(0)" onclick="Recv.toggleFullscreen()" data-i18n="fullscreen">全屏接收模式</a></li>
         <li class="small" style="margin-top:auto; text-align:center; padding-top:1rem; border-top:1px solid var(--glass-border);">
-          <span style="font-size:0.8rem; color:var(--text-muted); font-weight:500;">Cimbar Web <span class="version-badge">v1.0.0</span></span>
+          <span style="font-size:0.8rem; color:var(--text-muted); font-weight:500;"><span data-i18n="hub_main_title">二维码传输中心</span> <span class="version-badge">v1.0.0</span></span>
         </li>
       </ul>
     </div>
@@ -13165,14 +13704,14 @@ self.onmessage = async (event) => {
 const i18nDict = {
     en: {
         // Shared
-        "title_hub": "CIMBAR - Offline Browser File Transfer",
-        "title_send": "Cimbar File Sender",
-        "title_recv": "Cimbar File Receiver",
+        "title_hub": "QR Code Transfer Hub - Offline Browser File Transfer",
+        "title_send": "QR Code Transfer Hub - File Sender",
+        "title_recv": "QR Code Transfer Hub - File Receiver",
         "back_to_hub": "Back to Hub",
         "fullscreen": "Fullscreen Mode",
         
         // Hub (index.html)
-        "hub_main_title": "Cimbar Transfer Hub",
+        "hub_main_title": "QR Code Transfer Hub",
         "hub_subtitle": "Completely offline, cross-device file transfer in the browser using dynamic color barcodes (no network required)",
         "hub_sender": "File Sender",
         "hub_sender_desc": "Select a local file and encode it into a stream of dynamic color barcodes playing on the screen (fully offline).",
@@ -13180,6 +13719,25 @@ const i18nDict = {
         "hub_receiver": "File Receiver",
         "hub_receiver_desc": "Use your device camera to scan the dynamic barcodes on the screen, decode in real-time, and instantly download the reconstructed file (fully offline).",
         "hub_btn_recv": "Start Receiving",
+
+        // About Modal
+        "about_btn": "About",
+        "about_tagline": "Pure Client-Side Offline Transfer Tool",
+        "about_desc": "A pure client-side offline file transfer tool powered by dynamic color barcodes and high-capacity static QR codes. Operates without Wi-Fi, Bluetooth, or cloud servers—data travels via screen light and camera capture across air-gapped devices.",
+        "about_sec_features": "🌟 Key Features",
+        "about_feat1_title": "100% Offline & Air-Gapped",
+        "about_feat1_desc": "No network connection required. Zero data uploaded to cloud, fully protecting against remote sniffing and leaks.",
+        "about_feat2_title": "Dual-Mode Transmission",
+        "about_feat2_desc": "Supports Cimbar dynamic color barcodes (high-speed streaming for large files) and high-capacity static QR codes (up to 2,953 bytes for text/URLs).",
+        "about_feat3_title": "Pure Client-Side Computation",
+        "about_feat3_desc": "Accelerated with WebAssembly and HTML5 Canvas hardware rendering. Encodes and decodes locally in seconds.",
+        "about_feat4_title": "Single-File Standalone Portable",
+        "about_feat4_desc": "Available as a single standalone HTML file. Copy to USB or mobile devices for instant cross-platform use.",
+        "about_sec_info": "ℹ️ Version & License",
+        "about_lbl_version": "Version",
+        "about_lbl_license": "License",
+        "about_lbl_credits": "Credits",
+        "about_close": "Close",
 
         // Send Page (send.html)
         "send_status_ready": "Ready",
@@ -13233,14 +13791,14 @@ const i18nDict = {
     },
     zh: {
         // Shared
-        "title_hub": "CIMBAR 浏览器端无网文件传输工具",
-        "title_send": "Cimbar 文件发送端",
-        "title_recv": "Cimbar 文件接收端",
+        "title_hub": "二维码传输中心 - 浏览器端无网文件传输工具",
+        "title_send": "二维码传输中心 - 发送端",
+        "title_recv": "二维码传输中心 - 接收端",
         "back_to_hub": "返回大厅",
         "fullscreen": "全屏展示模式",
 
         // Hub (index.html)
-        "hub_main_title": "Cimbar 传输中心",
+        "hub_main_title": "二维码传输中心",
         "hub_subtitle": "在浏览器中使用彩色条形码进行完全离线、跨设备的文件传输（无需任何网络连接）",
         "hub_sender": "文件发送端",
         "hub_sender_desc": "选择一个本地文件，将其编码为在屏幕上播放的动态彩色条形码流（完全离线）。",
@@ -13248,6 +13806,25 @@ const i18nDict = {
         "hub_receiver": "文件接收端",
         "hub_receiver_desc": "使用设备摄像头扫描屏幕上的动态条形码，实时解码并瞬间下载重组后的文件（完全离线）。",
         "hub_btn_recv": "开始接收",
+
+        // About Modal
+        "about_btn": "关于",
+        "about_tagline": "纯前端无网跨设备传输工具",
+        "about_desc": "基于动态彩色条形码与标准静态二维码构建的纯前端离线传输工具。无需 Wi-Fi、蓝牙或任何云端服务器，仅通过屏幕光线与摄像头扫描，即可在物理隔离设备间实现极速、安全的文件与文本互传。",
+        "about_sec_features": "🌟 核心特性",
+        "about_feat1_title": "完全离线与物理隔离 (Air-Gapped)",
+        "about_feat1_desc": "不建立任何网络连接，零数据上云，彻底阻断远程抓包与监听风险。",
+        "about_feat2_title": "双模式智能引擎",
+        "about_feat2_desc": "支持 Cimbar 动态彩色条码（流式传输大文件）与高容量静态二维码（单张容纳最高 2,953 字节文本/链接）。",
+        "about_feat3_title": "纯客户端高速运算",
+        "about_feat3_desc": "基于 WebAssembly 与 HTML5 Canvas 硬件渲染，秒级编码解码，即开即用。",
+        "about_feat4_title": "单文件离线便携运行",
+        "about_feat4_desc": "提供单文件独立版 HTML，直接复制到 U 盘或手机即可跨平台使用。",
+        "about_sec_info": "ℹ️ 版本与协议信息",
+        "about_lbl_version": "当前版本",
+        "about_lbl_license": "开源协议",
+        "about_lbl_credits": "技术支持",
+        "about_close": "关闭",
 
         // Send Page (send.html)
         "send_status_ready": "准备就绪",
@@ -13403,6 +13980,23 @@ class I18nManager {
 
 window.I18n = new I18nManager();
 window.I18n.init();
+
+// Global About Modal helpers
+window.openAboutModal = function() {
+    var modal = document.getElementById('about-modal');
+    if (modal) modal.classList.remove('hidden');
+};
+
+window.closeAboutModal = function() {
+    var modal = document.getElementById('about-modal');
+    if (modal) modal.classList.add('hidden');
+};
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' || e.key === 'Esc') {
+        window.closeAboutModal();
+    }
+});
 
   </script>
 
@@ -13669,6 +14263,7 @@ var Main = function () {
     reset: function () {
       Main.togglePause(true);
       document.body.classList.remove('transmitting');
+      document.documentElement.classList.remove('transmitting');
 
       if (typeof Module !== 'undefined' && Module._cimbare_init_encode) {
         try {
@@ -13759,16 +14354,19 @@ var Main = function () {
           canvas.classList.add('active');
           if (dragdrop) dragdrop.classList.add('hidden');
           document.body.classList.add('transmitting');
+          document.documentElement.classList.add('transmitting');
           window.scrollTo(0, 0);
           Main.togglePause(false);
           Main.resize();
         } else {
           document.body.classList.remove('transmitting');
+          document.documentElement.classList.remove('transmitting');
           if (dragdrop) dragdrop.classList.remove('hidden');
           if (canvas) canvas.classList.remove('active');
         }
       } else {
         document.body.classList.remove('transmitting');
+        document.documentElement.classList.remove('transmitting');
         if (fileTabBtn) fileTabBtn.classList.remove('active');
         if (textTabBtn) textTabBtn.classList.add('active');
         if (dragdrop) dragdrop.classList.add('hidden');
@@ -13783,6 +14381,9 @@ var Main = function () {
             Main.onQRTextInput();
           }
         }
+      }
+      if (typeof window.updateScrollState === 'function') {
+        window.updateScrollState();
       }
     },
 
@@ -15403,23 +16004,41 @@ var Recv = function () {
   <!-- Router logic and event overrides -->
   <script type="text/javascript">
     // View routing controller
-    function showView(viewId) {
-      console.log("Routing to view: " + viewId);
+    var currentView = 'hub';
+
+    function updateScrollState(viewId) {
+      if (!viewId) viewId = currentView;
+      var isDesktop = window.innerWidth > 768 && window.innerHeight >= 580;
+      var isTransmitting = document.body.classList.contains('transmitting');
       
-      // Control scrollability and height behavior dynamically to prevent browser chrome/notch overlaps
-      if (viewId === 'hub' || viewId === 'send') {
-        if (!document.body.classList.contains('transmitting')) {
-          document.body.style.overflow = 'auto';
-          document.documentElement.style.overflow = 'auto';
-        }
-        document.body.style.height = 'auto';
-        document.documentElement.style.height = 'auto';
-      } else {
+      if (viewId === 'recv' || isTransmitting) {
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
         document.body.style.height = '100dvh';
         document.documentElement.style.height = '100dvh';
+      } else if (viewId === 'send' || viewId === 'hub') {
+        if (isDesktop) {
+          document.body.style.overflow = 'hidden';
+          document.documentElement.style.overflow = 'hidden';
+          document.body.style.height = '100dvh';
+          document.documentElement.style.height = '100dvh';
+        } else {
+          document.body.style.overflow = 'auto';
+          document.documentElement.style.overflow = 'auto';
+          document.body.style.height = 'auto';
+          document.documentElement.style.height = 'auto';
+        }
       }
+    }
+    window.updateScrollState = updateScrollState;
+    window.addEventListener('resize', function() {
+      updateScrollState(currentView);
+    });
+
+    function showView(viewId) {
+      console.log("Routing to view: " + viewId);
+      currentView = viewId;
+      updateScrollState(viewId);
 
       // Strictly isolate views: only target view gets active and display:flex; all others hidden
       var viewIds = ['hub', 'send', 'recv'];
@@ -15454,6 +16073,7 @@ var Recv = function () {
       // If switching to Hub, reset sender state so previous barcodes don't linger
       if (viewId === 'hub') {
         document.body.classList.remove('transmitting');
+        document.documentElement.classList.remove('transmitting');
         if (typeof Main !== 'undefined' && typeof Main.reset === 'function') {
           Main.reset();
         }
@@ -15514,6 +16134,8 @@ var Recv = function () {
         sendHomeBtn.onclick = (e) => {
           if (e) e.preventDefault();
           document.body.classList.remove('transmitting');
+          document.documentElement.classList.remove('transmitting');
+          updateScrollState('hub');
           if (typeof Main !== 'undefined' && typeof Main.reset === 'function') {
             Main.reset();
           }
@@ -15562,6 +16184,8 @@ var Recv = function () {
             canvas.classList.add('has-file');
           }
           document.body.classList.add('transmitting');
+          document.documentElement.classList.add('transmitting');
+          updateScrollState();
           window.scrollTo(0, 0);
           if (typeof Main !== 'undefined') {
             Main.switchTab('file');
@@ -15585,6 +16209,8 @@ var Recv = function () {
             canvas.classList.add('has-file');
           }
           document.body.classList.add('transmitting');
+          document.documentElement.classList.add('transmitting');
+          updateScrollState();
           window.scrollTo(0, 0);
           if (typeof Main !== 'undefined') {
             Main.togglePause(false);

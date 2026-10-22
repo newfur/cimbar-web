@@ -2,7 +2,7 @@
 <html lang="zh-CN" data-i18n-title="title_hub">
 <head>
   <meta charset="utf-8">
-  <title>CIMBAR 浏览器端无网文件传输工具</title>
+  <title>二维码传输中心 - 浏览器端无网文件传输工具</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     :root {
@@ -112,9 +112,10 @@
     @media (max-width: 768px) {
       body {
         justify-content: flex-start !important;
-        padding: max(1.5rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-left)) max(2.5rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-right));
+        padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-left)) max(2.5rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-right));
       }
       header {
+        margin-top: clamp(2.8rem, 7.5vh, 4.2rem);
         margin-bottom: 1.5rem;
       }
       .main-container {
@@ -391,40 +392,392 @@
         transform: translateY(0);
       }
     }
-    /* i18n toggle button */
-  #i18n-toggle {
+    /* Top-right action buttons */
+  .top-actions-bar {
     position: absolute;
     top: 20px;
     right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 100;
+  }
+  .top-btn {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     color: var(--text-main);
-    padding: 8px 12px;
+    padding: 8px 14px;
     border-radius: 20px;
     cursor: pointer;
     font-size: 0.9rem;
     font-weight: 500;
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     transition: all 0.2s ease;
-    z-index: 100;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    line-height: 1;
   }
-  #i18n-toggle:hover {
-    background: rgba(255, 255, 255, 0.9);
+  .top-btn:hover {
+    background: rgba(255, 255, 255, 0.95);
     transform: translateY(-1px);
+    border-color: var(--accent-purple);
+    color: var(--accent-purple);
     box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+  }
+  .top-btn svg {
+    display: block;
+    width: 16px;
+    height: 16px;
+  }
+
+  /* About Modal Styles */
+  .about-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1.5rem;
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  .about-modal-card {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 25px 50px -12px rgba(124, 58, 237, 0.25);
+    border-radius: 24px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 88vh;
+    padding: 1.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-sizing: border-box;
+  }
+
+  @keyframes popIn {
+    0% { transform: scale(0.92); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .about-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 0.8rem;
+    flex-shrink: 0;
+  }
+
+  .about-modal-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    min-width: 0;
+  }
+
+  .about-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(124, 58, 237, 0.15) 100%);
+    color: var(--accent-purple);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .about-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .about-title-wrap h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.25;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .about-sub-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .about-version-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: rgba(124, 58, 237, 0.1);
+    border: 1px solid var(--glass-border);
+    color: var(--accent-purple);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .about-tagline {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .about-modal-close {
+    background: transparent;
+    border: none;
+    font-size: 1.3rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    line-height: 1;
+    padding: 6px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .about-modal-close:hover {
+    color: var(--text-main);
+    background: rgba(124, 58, 237, 0.08);
+  }
+
+  .about-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    line-height: 1.55;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 4px;
+    max-height: 56vh;
+  }
+
+  .about-intro {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .about-section {
+    background: rgba(124, 58, 237, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .about-section-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--accent-purple);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .about-feature-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.86rem;
+  }
+
+  .about-feature-item .icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .about-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    padding: 0.2rem 0;
+  }
+
+  .about-meta-val {
+    font-weight: 600;
+    color: var(--text-main);
+  }
+
+  .about-footer {
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid var(--glass-border);
+    padding-top: 0.8rem;
+    flex-shrink: 0;
+  }
+
+  .btn-about-close {
+    padding: 0.6rem 1.5rem;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 0.92rem;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25);
+    transition: all 0.2s;
+  }
+
+  .btn-about-close:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  @media (max-width: 768px) {
+    .top-actions-bar {
+      top: max(14px, env(safe-area-inset-top));
+      right: max(16px, env(safe-area-inset-right));
+      gap: 8px;
+    }
+    .top-btn {
+      padding: 6px 12px;
+      font-size: 0.84rem;
+      border-radius: 12px;
+    }
+    .about-modal-card {
+      padding: 1.25rem;
+      border-radius: 20px;
+      max-height: 84vh;
+    }
+    .about-body {
+      max-height: 52vh;
+    }
   }
 </style>
 </head>
 <body>
-  <button id="i18n-toggle" title="Switch Language">🌐 En</button>
+  <div class="top-actions-bar">
+    <button type="button" id="i18n-toggle" class="top-btn" title="Switch Language">🌐 En</button>
+    <button type="button" id="btn-about" class="top-btn" onclick="openAboutModal()" title="关于">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span data-i18n="about_btn">关于</span>
+    </button>
+  </div>
 
   <div class="glow-sphere glow-cyan"></div>
   <div class="glow-sphere glow-purple"></div>
 
   <header>
-    <h1><span data-i18n="hub_main_title">Cimbar 传输中心</span><span class="version-badge">v1.0.0</span></h1>
+    <h1><span data-i18n="hub_main_title">二维码传输中心</span></h1>
     <p data-i18n="hub_subtitle">在浏览器中使用彩色条形码进行完全离线、跨设备的文件传输（无需任何网络连接）</p>
   </header>
+
+  <!-- About Modal -->
+  <div id="about-modal" class="about-modal hidden" onclick="if (event.target === this) closeAboutModal();">
+    <div class="about-modal-card" onclick="event.stopPropagation()">
+      <div class="about-modal-header">
+        <div class="about-modal-header-left">
+          <div class="about-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+            </svg>
+          </div>
+          <div class="about-title-wrap">
+            <h3 data-i18n="hub_main_title">二维码传输中心</h3>
+            <div class="about-sub-row">
+              <span class="about-version-badge">v1.0.0</span>
+              <span class="about-tagline" data-i18n="about_tagline">纯前端无网跨设备传输工具</span>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="about-modal-close" onclick="closeAboutModal()" title="Close">✕</button>
+      </div>
+
+      <div class="about-body">
+        <p class="about-intro" data-i18n="about_desc">
+          基于动态彩色条形码与标准静态二维码构建的纯前端离线传输工具。无需 Wi-Fi、蓝牙或任何云端服务器，仅通过屏幕光线与摄像头扫描，即可在物理隔离设备间实现极速、安全的文件与文本互传。
+        </p>
+
+        <div class="about-section">
+          <div class="about-section-title">
+            <span data-i18n="about_sec_features">🌟 核心特性</span>
+          </div>
+          <div class="about-feature-item">
+            <span class="icon">🛡️</span>
+            <div>
+              <strong data-i18n="about_feat1_title">完全离线与物理隔离 (Air-Gapped)</strong>：
+              <span data-i18n="about_feat1_desc">不建立任何网络连接，零数据上云，彻底阻断远程抓包与监听风险。</span>
+            </div>
+          </div>
+          <div class="about-feature-item">
+            <span class="icon">⚡</span>
+            <div>
+              <strong data-i18n="about_feat2_title">双模式智能引擎</strong>：
+              <span data-i18n="about_feat2_desc">支持 Cimbar 动态彩色条码（流式传输大文件）与高容量静态二维码（单张容纳最高 2,953 字节文本/链接）。</span>
+            </div>
+          </div>
+          <div class="about-feature-item">
+            <span class="icon">🚀</span>
+            <div>
+              <strong data-i18n="about_feat3_title">纯客户端高速运算</strong>：
+              <span data-i18n="about_feat3_desc">基于 WebAssembly 与 HTML5 Canvas 硬件渲染，秒级编码解码，即开即用。</span>
+            </div>
+          </div>
+          <div class="about-feature-item">
+            <span class="icon">📦</span>
+            <div>
+              <strong data-i18n="about_feat4_title">单文件离线便携运行</strong>：
+              <span data-i18n="about_feat4_desc">提供单文件独立版 HTML，直接复制到 U 盘或手机即可跨平台使用。</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="about-section">
+          <div class="about-section-title">
+            <span data-i18n="about_sec_info">ℹ️ 版本与协议信息</span>
+          </div>
+          <div class="about-meta-row">
+            <span data-i18n="about_lbl_version">当前版本</span>
+            <span class="about-meta-val">v1.0.0 (Release)</span>
+          </div>
+          <div class="about-meta-row">
+            <span data-i18n="about_lbl_license">开源协议</span>
+            <span class="about-meta-val">MIT License</span>
+          </div>
+          <div class="about-meta-row">
+            <span data-i18n="about_lbl_credits">技术支持</span>
+            <span class="about-meta-val">Cimbar (libcimbar) · Nayuki QR · jsQR</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-footer">
+        <button type="button" class="btn-about-close" onclick="closeAboutModal()" data-i18n="about_close">关闭</button>
+      </div>
+    </div>
+  </div>
 
   <main class="main-container">
     

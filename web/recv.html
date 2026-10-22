@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-CN" data-framework="javascript" data-i18n-title="title_recv">
 <head>
-  <title>Cimbar 文件接收端</title>
+  <title>二维码传输中心 - 接收端</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, user-scalable=no">
   <link rel="manifest" href="pwa-recv.2026-08-21T2336.json">
@@ -34,19 +34,44 @@
       color: var(--text-main);
     }
 
+    /* Ambient background glows */
+    .glow-sphere {
+      position: fixed;
+      width: 350px;
+      height: 350px;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.25;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .glow-cyan {
+      top: 10%;
+      left: 15%;
+      background: var(--accent-cyan);
+    }
+    .glow-purple {
+      bottom: 5%;
+      right: 10%;
+      background: var(--accent-purple);
+    }
+
+    /* Camera Viewfinder (perfectly matching dynamic barcode canvas area and style) */
     #container {
-      position: absolute;
-      top: 50%;
+      position: fixed;
+      top: calc(50% + 20px);
       left: 50%;
       transform: translate(-50%, -50%);
-      width: calc(100vmin - 10px);
-      height: calc(100vmin - 10px);
-      border-radius: 28px;
+      width: min(calc(100vw - 40px), calc(100dvh - 150px));
+      height: min(calc(100vw - 40px), calc(100dvh - 150px));
+      aspect-ratio: 1 / 1;
+      border-radius: 16px;
       overflow: hidden;
-      border: 4px solid var(--glass-border);
-      box-shadow: 0 20px 50px rgba(124, 58, 237, 0.15);
+      border: 3px solid var(--glass-border);
+      box-shadow: 0 20px 60px rgba(124, 58, 237, 0.15);
       z-index: 2;
       background: #000;
+      transition: width 0.2s ease, height 0.2s ease;
     }
 
     video {
@@ -105,13 +130,16 @@
       background: rgba(255, 255, 255, 0.6);
       border: 1px solid var(--glass-border);
       color: var(--text-main);
-      padding: 0.6rem 1.2rem;
+      height: 42px;
+      box-sizing: border-box;
+      padding: 0 1.2rem;
       border-radius: 12px;
       text-decoration: none;
       font-size: 0.9rem;
       font-weight: 500;
-      display: flex;
+      display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 0.5rem;
       backdrop-filter: blur(15px);
       -webkit-backdrop-filter: blur(15px);
@@ -133,7 +161,7 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
-      z-index: 20;
+      z-index: 35;
     }
 
     #nav-container .bg {
@@ -166,8 +194,9 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      height: 44px;
-      width: 44px;
+      height: 42px;
+      width: 42px;
+      box-sizing: border-box;
       border-radius: 12px;
       cursor: pointer;
       pointer-events: auto;
@@ -366,16 +395,18 @@
     #tdec { color: var(--accent-cyan); }
     #framesInFlight { color: var(--accent-yellow); }
 
-    /* Progress Overlay */
+    /* Progress Overlay matching container width */
     #progress_bars {
       position: fixed;
       bottom: 25px;
-      left: 20px;
-      right: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(calc(100vw - 40px), calc(100dvh - 150px));
       z-index: 15;
       display: flex;
       flex-direction: column;
       gap: 8px;
+      transition: width 0.2s ease;
     }
 
     .progress {
@@ -640,9 +671,29 @@
     .hidden {
       display: none !important;
     }
+
+    @media (max-width: 768px) {
+      .btn-home {
+        height: 38px;
+        padding: 0 0.9rem;
+        font-size: 0.85rem;
+        top: max(16px, env(safe-area-inset-top));
+        left: max(16px, env(safe-area-inset-left));
+      }
+      #nav-button {
+        height: 38px;
+        width: 38px;
+        top: max(16px, env(safe-area-inset-top));
+        right: max(16px, env(safe-area-inset-right));
+      }
+    }
   </style>
 </head>
 <body>
+
+  <!-- Ambient background glows -->
+  <div class="glow-sphere glow-cyan"></div>
+  <div class="glow-sphere glow-purple"></div>
 
   <!-- Camera Stream Viewfinder -->
   <div id="container">
@@ -675,7 +726,7 @@
         <li><a href="javascript:void(0)" onclick="Recv.toggleDebugPanel()" data-i18n="recv_toggle_debug">切换调试面板</a></li>
         <li><a href="javascript:void(0)" onclick="Recv.toggleFullscreen()" data-i18n="fullscreen">全屏接收模式</a></li>
         <li class="small" style="margin-top:auto; text-align:center; padding-top:1rem; border-top:1px solid var(--glass-border);">
-          <span style="font-size:0.8rem; color:var(--text-muted); font-weight:500;">Cimbar Web <span class="version-badge">v1.0.0</span></span>
+          <span style="font-size:0.8rem; color:var(--text-muted); font-weight:500;"><span data-i18n="hub_main_title">二维码传输中心</span> <span class="version-badge">v1.0.0</span></span>
         </li>
       </ul>
     </div>

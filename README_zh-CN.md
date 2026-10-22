@@ -1,4 +1,4 @@
-# Cimbar-Web 🌈
+# 二维码传输中心 (Cimbar-Web) 🌈
 
 *[Read this in English (英文) 🇺🇸](./README.md)*
 
