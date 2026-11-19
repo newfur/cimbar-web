@@ -20,6 +20,8 @@ var Send = function () {
   // cached
   var _idealRatio = 1;
   var _compressBuff = undefined;
+  var _activeImportToken = null;
+  var _activeReader = null;
 
   function compress_buff(chunkSize) {
     if (_compressBuff === undefined) {
@@ -33,15 +35,37 @@ var Send = function () {
   }
 
   function importFile(file) {
+    if (!file) return;
+
+    // Abort any ongoing file reader from a previous import call
+    if (_activeReader) {
+      try {
+        _activeReader.abort();
+      } catch (e) {
+        console.warn("Abort previous reader error:", e);
+      }
+      _activeReader = null;
+    }
+
+    // Unique session token to invalidate any stale chunk callbacks
+    const currentToken = typeof Symbol === 'function' ? Symbol("importToken") : Date.now() + "_" + Math.random();
+    _activeImportToken = currentToken;
+
     let chunkSize = Module._cimbare_encode_bufsize() * 16;
     let compBuff = compress_buff(chunkSize);
 
     let offset = 0;
     let reader = new FileReader();
+    _activeReader = reader;
 
     Send.encode_init(file.name);
 
     reader.onload = function (event) {
+      if (_activeImportToken !== currentToken) {
+        console.warn("Discarding chunk from superseded importFile session");
+        return;
+      }
+
       const datalen = event.target.result.byteLength;
       if (datalen > 0) {
         // copy to wasm buff and write
@@ -56,15 +80,25 @@ var Send = function () {
       } else {
         // Done reading file
         console.log("Finished reading file.");
+        if (_activeImportToken === currentToken) {
+          _activeReader = null;
+          // this null call is functionally a flush()
+          // so a no-op, unless it isn't
+          const nullBuff = new Uint8Array(Module.HEAPU8.buffer, compBuff.byteOffset, 0);
+          Send.encode_bytes(nullBuff);
+        }
+      }
+    };
 
-        // this null call is functionally a flush()
-        // so a no-op, unless it isn't
-        const nullBuff = new Uint8Array(Module.HEAPU8.buffer, compBuff.byteOffset, 0);
-        Send.encode_bytes(nullBuff);
+    reader.onerror = function (err) {
+      if (_activeImportToken === currentToken) {
+        _activeReader = null;
+        console.error("FileReader error during import:", err);
       }
     };
 
     function readNext() {
+      if (_activeImportToken !== currentToken) return;
       let slice = file.slice(offset, offset + chunkSize);
       reader.readAsArrayBuffer(slice);
     }
@@ -175,6 +209,16 @@ var Send = function () {
       }
       _interval = Math.floor(1000 / val);
       console.log("new frame delay interval is " + _interval);
+    },
+
+    reset: function () {
+      if (_activeReader) {
+        try {
+          _activeReader.abort();
+        } catch (e) {}
+        _activeReader = null;
+      }
+      _activeImportToken = null;
     }
   };
 }();

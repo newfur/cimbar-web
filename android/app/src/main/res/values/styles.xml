@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Cimbar" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Status Bar & Navigation Bar Colors matching the Glassmorphism Theme -->
+        <item name="android:statusBarColor">#F3F0FA</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">#E8E2F7</item>
+        <item name="android:windowBackground">@color/bg_light</item>
+        <item name="colorPrimary">@color/purple_500</item>
+        <item name="colorPrimaryDark">@color/purple_700</item>
+        <item name="colorAccent">@color/teal_200</item>
+    </style>
+</resources>

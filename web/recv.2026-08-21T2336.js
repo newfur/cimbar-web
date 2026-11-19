@@ -3,6 +3,8 @@ var Sink = function () {
   var _fountainBuff = undefined;
   var _errBuff = undefined;
   var _errBuffSize = 1024;
+  var _isReassembling = false;
+  var _lastReassembledId = null;
 
   function fountain_buff() {
     if (_fountainBuff.buffer !== Module.HEAPU8.buffer) {
@@ -45,8 +47,12 @@ var Sink = function () {
       }
 
       if (res > 0) {
-        const res32t = Number(res & 0xFFFFFFFFn);; // truncate BigInt res (int64_t) to a uint32_t
-        Sink.reassemble_file(res32t);
+        const res32t = Number(res & 0xFFFFFFFFn); // truncate BigInt res (int64_t) to a uint32_t
+        if (!_isReassembling && _lastReassembledId !== res32t) {
+          _isReassembling = true;
+          _lastReassembledId = res32t;
+          Sink.reassemble_file(res32t);
+        }
       }
     },
 
@@ -87,6 +93,7 @@ var Sink = function () {
         }
         Zstd.decompress(name, id);
       } catch (error) {
+        _isReassembling = false;
         console.log("failed finish copy or download?? " + error);
       }
     }

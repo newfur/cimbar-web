@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">二维码传输中心</string>
+    <string name="camera_permission_required">二维码传输中心需要相机权限来扫描并接收文件</string>
+    <string name="grant_permission">授权</string>
+    <string name="cancel">取消</string>
+    <string name="file_saved_toast">文件已保存到系统下载目录：%s</string>
+    <string name="file_save_failed_toast">文件保存失败：%s</string>
+    <string name="press_again_to_exit">再按一次退出应用</string>
+</resources>

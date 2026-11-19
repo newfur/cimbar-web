@@ -4,8 +4,8 @@
   <title>二维码传输中心 - 发送端</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, user-scalable=no">
-  <link rel="manifest" href="pwa.2026-08-21T2336.json">
-  <link rel="preload" href="cimbar_js.2026-08-21T2336.wasm" as="fetch" type="application/wasm" crossorigin fetchpriority="high">
+  <link rel="manifest" href="pwa.2026-11-18T0531.json">
+  <link rel="preload" href="cimbar_js.2026-11-18T0531.wasm" as="fetch" type="application/wasm" crossorigin fetchpriority="high">
   <script type="text/javascript">
     // Protect text inputs and textareas from global keyboard capture (e.g. GLFW, Emscripten)
     (function() {
@@ -923,30 +923,46 @@
       margin-top: 4px;
     }
 
-    #nav-container .icon-bar:nth-of-type(1) { background-color: var(--accent-cyan); }
-    #nav-container .icon-bar:nth-of-type(2) { background-color: #eab308; }
-    #nav-container .icon-bar:nth-of-type(3) { background-color: #10b981; }
-    #nav-container .icon-bar:nth-of-type(4) { background-color: var(--accent-purple); }
-
-    #nav-container.open #nav-button {
-      border-color: var(--glass-hover-border);
-      background: rgba(255,255,255,0.9);
+    #nav-button.hidden,
+    #nav-container.hidden {
+      display: none !important;
     }
 
-    #nav-container.open .icon-bar {
+    #nav-button .icon-bar:nth-of-type(1),
+    #nav-container .icon-bar:nth-of-type(1) { background-color: var(--accent-cyan); }
+    #nav-button .icon-bar:nth-of-type(2),
+    #nav-container .icon-bar:nth-of-type(2) { background-color: #eab308; }
+    #nav-button .icon-bar:nth-of-type(3),
+    #nav-container .icon-bar:nth-of-type(3) { background-color: #10b981; }
+    #nav-button .icon-bar:nth-of-type(4),
+    #nav-container .icon-bar:nth-of-type(4) { background-color: var(--accent-purple); }
+
+    #nav-container.open #nav-button,
+    #nav-button.open {
+      border-color: var(--glass-hover-border);
+      background: rgba(255, 255, 255, 0.9);
+      z-index: 45 !important;
+    }
+
+    #nav-container.open .icon-bar,
+    #nav-button.open .icon-bar {
       background-color: var(--text-main);
     }
 
-    #nav-container.open .icon-bar:nth-of-type(1) {
+    #nav-container.open .icon-bar:nth-of-type(1),
+    #nav-button.open .icon-bar:nth-of-type(1) {
       transform: translate3d(0, 7px, 0) rotate(45deg);
     }
 
     #nav-container.open .icon-bar:nth-of-type(2),
-    #nav-container.open .icon-bar:nth-of-type(3) {
+    #nav-container.open .icon-bar:nth-of-type(3),
+    #nav-button.open .icon-bar:nth-of-type(2),
+    #nav-button.open .icon-bar:nth-of-type(3) {
       opacity: 0;
     }
 
-    #nav-container.open .icon-bar:nth-of-type(4) {
+    #nav-container.open .icon-bar:nth-of-type(4),
+    #nav-button.open .icon-bar:nth-of-type(4) {
       transform: translate3d(0, -5px, 0) rotate(-45deg);
     }
 
@@ -1104,17 +1120,17 @@
         max-width: 100%;
         height: auto;
         pointer-events: none;
-        z-index: 10;
+        z-index: auto !important;
       }
 
       .send-top-nav-row {
         display: flex;
         align-items: center;
-        justify-content: flex-start;
-        width: auto;
-        max-width: fit-content;
-        align-self: flex-start;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 100%;
         height: 38px;
+        box-sizing: border-box;
         pointer-events: none;
       }
 
@@ -1162,12 +1178,25 @@
       }
 
       #nav-button {
-        position: fixed !important;
-        top: max(16px, env(safe-area-inset-top)) !important;
-        right: max(16px, env(safe-area-inset-right)) !important;
+        position: relative !important;
+        top: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        left: auto !important;
+        transform: none !important;
+        margin: 0 0 0 auto !important;
         height: 38px !important;
         width: 38px !important;
-        z-index: 35 !important;
+        box-sizing: border-box !important;
+        border-radius: 12px !important;
+        pointer-events: auto !important;
+        z-index: 15;
+      }
+
+      #nav-container.open #nav-button,
+      #nav-button.open {
+        position: relative !important;
+        z-index: 50 !important;
       }
     }
   </style>
@@ -1186,6 +1215,14 @@
         </svg>
         <span data-i18n="back_to_hub">返回大厅</span>
       </a>
+
+      <!-- Cimbar Dynamic Barcode Settings Button (positioned with Return to Hub) -->
+      <button id="nav-button" tabindex="0" onclick="Main.clickNav();" title="设置" data-i18n="send_settings" data-i18n-target="title">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
     </div>
 
     <!-- Top Mode Switcher Tabs -->
@@ -1210,7 +1247,7 @@
   <div id="status" data-i18n="send_status_ready">准备就绪</div>
 
   <!-- Styled Drag-Drop Area -->
-  <div id="dragdrop" class="dragdrop" title="拖拽或选择本地文件" data-i18n="send_dragdrop_title" data-i18n-target="title">
+  <div id="dragdrop" class="dragdrop" title="拖拽或选择本地文件" data-i18n="send_dragdrop_title" data-i18n-target="title" onclick="if (!this.classList.contains('active')) Main.clickFileInput();">
     <div class="dragdrop-content">
       <div class="dragdrop-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1341,14 +1378,8 @@
   <input style="display:none;" type="file" name="file_input" id="file_input" onchange="Main.fileInput(this);" />
 
   <!-- Styled Settings Drawer -->
-  <div id="nav-container" class="mode-b">
+  <div id="nav-container" class="mode-bm">
     <div class="bg" onclick="Main.blurNav();"></div>
-    <button id="nav-button" tabindex="0" onclick="Main.clickNav();">
-      <span class="icon-bar"></span>
-      <span class="icon-bar"></span>
-      <span class="icon-bar"></span>
-      <span class="icon-bar"></span>
-    </button>
     <div id="nav-content" tabindex="-1">
       <span id="current-file" data-i18n="send_no_file">未选择任何文件</span>
       <ul>
@@ -1374,7 +1405,7 @@
         </li>
         <li class="small-link"><a href="javascript:void(0)" onclick="Main.toggleFullscreen()" data-i18n="fullscreen">全屏展示模式</a></li>
         <li class="small" style="margin-top:auto; text-align:center; padding-top:1rem; border-top:1px solid var(--glass-border);">
-          <span style="font-size:0.8rem; color:var(--text-muted); font-weight:500;"><span data-i18n="hub_main_title">二维码传输中心</span> <span class="version-badge">v1.0.0</span></span>
+          <span style="font-size:0.8rem; color:var(--text-muted); font-weight:500;"><span data-i18n="hub_main_title">二维码传输中心</span> <span class="version-badge">v1.1.0</span></span>
         </li>
       </ul>
     </div>
@@ -1402,29 +1433,29 @@
   <script src="qrcode.min.js"></script>
 
   <!-- Load Cimbar Scripts (Send, Main, and WASM) -->
-  <script src="send.2026-08-21T2336.js"></script>
-  <script src="main.2026-08-21T2336.js"></script>
-  <script src="cimbar_js.2026-08-21T2336.js"></script>
+  <script src="send.2026-11-18T0531.js"></script>
+  <script src="main.2026-11-18T0531.js"></script>
+  <script src="cimbar_js.2026-11-18T0531.js"></script>
 
   <!-- Inline Script 2: Handle custom interactions safely using Main -->
   <script type="text/javascript">
     const dragdrop = document.getElementById('dragdrop');
     const currentFile = document.getElementById('current-file');
     
-    // Tap to open file picker (only when canvas is not active)
-    dragdrop.addEventListener('click', (e) => {
-      if (canvas.classList.contains('active')) return;
-      Main.clickFileInput();
-    });
-
     // Override Main.blurNav to remove .open class
     Main.blurNav = function (pause) {
-      document.getElementById("nav-container").classList.remove("open");
+      const nav = document.getElementById("nav-container");
+      if (nav) nav.classList.remove("open");
+      const btn = document.getElementById("nav-button");
+      if (btn) btn.classList.remove("open");
     };
 
     // Override Main.clickNav to toggle .open class
     Main.clickNav = function () {
-      document.getElementById("nav-container").classList.toggle("open");
+      const nav = document.getElementById("nav-container");
+      if (nav) nav.classList.toggle("open");
+      const btn = document.getElementById("nav-button");
+      if (btn) btn.classList.toggle("open");
     };
 
     // Disable the overlap check since our settings icon is in the top-right and doesn't conflict

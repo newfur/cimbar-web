@@ -75,6 +75,7 @@ const i18nDict = {
         "send_qr_fs_hint": "Click anywhere or press ESC to exit fullscreen",
 
         // Recv Page (recv.html)
+        "recv_switch_camera": "Switch Camera",
         "recv_toggle_debug": "Toggle Debug Panel",
         "recv_status_no_error": "No error",
         "recv_worker_idle": "Worker {n} Idle",
@@ -162,6 +163,7 @@ const i18nDict = {
         "send_qr_fs_hint": "点击任意位置或按 ESC 退出全屏",
 
         // Recv Page (recv.html)
+        "recv_switch_camera": "切换摄像头",
         "recv_toggle_debug": "切换调试面板",
         "recv_status_no_error": "暂无错误",
         "recv_worker_idle": "工作线程 {n} 空闲",

@@ -20,27 +20,26 @@ def main():
     print("Starting standalone single-file HTML packaging...")
 
     # 1. Read and base64-encode WebAssembly (embedded ONCE in the output)
-    wasm_bytes = read_binary('cimbar_js.2026-08-21T2336.wasm')
+    wasm_bytes = read_binary('cimbar_js.2026-11-18T0531.wasm')
     wasm_base64 = base64.b64encode(wasm_bytes).decode('utf-8')
     print(f"Loaded WASM binary, encoded size: {len(wasm_base64) / 1024 / 1024:.2f} MB")
 
     # 2. Read Core JS libraries
     qrcode_js = read_file('qrcode.min.js')
     jsqr_js = read_file('jsqr.js')
-    zstd_js = read_file('zstd.2026-08-21T2336.js')
-    cimbar_wrapper_js = read_file('cimbar_js.2026-08-21T2336.js')
+    zstd_js = read_file('zstd.2026-11-18T0531.js')
+    cimbar_wrapper_js = read_file('cimbar_js.2026-11-18T0531.js')
     i18n_js = read_file('i18n.js')
-    send_js = read_file('send.2026-08-21T2336.js')
+    send_js = read_file('send.2026-11-18T0531.js')
     send_js = send_js.replace('"current-file"', '"send-current-file"')
 
     # 3. Compile Web Worker code (WITHOUT embedded WASM)
-    worker_js_raw = read_file('recv-worker.2026-08-21T2336.js')
+    worker_js_raw = read_file('recv-worker.2026-11-18T0531.js')
     # Strip the importScripts line
     worker_js_raw = re.sub(r"importScripts\(['\"].*?['\"]\);", "", worker_js_raw)
     
-    # Strip the header block (let _wasmInitialized, let _buffs, and var Module) from worker_js_raw
-    # to declare them properly at the top of the compiled file
-    header_pattern = r"let _wasmInitialized\s*=\s*false;.*?let _buffs\s*=\s*\{\};.*?var Module\s*=\s*\{.*?onRuntimeInitialized:.*?\}\s*;"
+    # Strip the header block from worker_js_raw to declare them properly at top of compiled worker
+    header_pattern = r"let _wasmInitialized\s*=\s*false;.*?var Module\s*=\s*\{.*?onRuntimeInitialized:.*?\}\s*;"
     worker_js_raw = re.sub(header_pattern, "", worker_js_raw, flags=re.DOTALL)
     
     cimbar_wrapper_json = json.dumps(cimbar_wrapper_js)
@@ -49,6 +48,8 @@ def main():
     worker_js_compiled = f"""
     var _wasmInitialized = false;
     var _buffs = {{}};
+    var _offscreen = undefined;
+    var _offscreenCtx = undefined;
     var Module;
     
     // Save the real frame-processing onmessage handler (set later by worker_js_raw)
@@ -96,7 +97,7 @@ def main():
     worker_code_escaped = worker_js_compiled.replace('\\', '\\\\').replace('`', '\\`').replace('$', '\\$')
 
     # 4. Read main/recv JS files and rename conflicting drawer IDs
-    main_js = read_file('main.2026-08-21T2336.js')
+    main_js = read_file('main.2026-11-18T0531.js')
     main_js = main_js.replace('"nav-container"', '"send-nav-container"')
     main_js = main_js.replace('"nav-button"', '"send-nav-button"')
     main_js = main_js.replace('"nav-content"', '"send-nav-content"')
@@ -112,13 +113,18 @@ def main():
         'dragdrop.classList.add("active");',
         'var invisi = document.getElementById("dragdrop"); if (invisi) invisi.classList.add("active");'
     )
+    main_js = main_js.replace(
+        'Main.dragDrop(e);',
+        'if (typeof showView === "function") showView("send"); Main.dragDrop(e);'
+    )
 
-    recv_js = read_file('recv.2026-08-21T2336.js')
+    recv_js = read_file('recv.2026-11-18T0531.js')
     recv_js = recv_js.replace('"nav-container"', '"recv-nav-container"')
     recv_js = recv_js.replace('"nav-button"', '"recv-nav-button"')
     recv_js = recv_js.replace('"nav-content"', '"recv-nav-content"')
     # Redirect worker creation to a Blob URL
-    recv_js = recv_js.replace("new Worker('recv-worker.2026-08-21T2336.js')", "new Worker(window.CIMBAR_WORKER_URL)")
+    recv_js = recv_js.replace("new Worker('recv-worker.2026-11-18T0531.js')", "new Worker(window.CIMBAR_WORKER_URL)")
+    recv_js = recv_js.replace("new Worker('recv-worker.js')", "new Worker(window.CIMBAR_WORKER_URL)")
 
     # Inject postMessage to send precompiled WASM module (or binary fallback) to each worker
     recv_js = recv_js.replace(
@@ -134,6 +140,8 @@ def main():
 
     # Add continuous scanning and reset logic to Sink inside recv_js
     reset_js = """    resetDecoder: function () {
+      _isReassembling = false;
+      _lastReassembledId = null;
       _mode = _userMode;
       const currentMode = _mode || 68;
       const tempMode = currentMode === 4 ? 68 : 4;
@@ -199,8 +207,10 @@ def main():
         return ""
 
     index_body = extract_body_elements(index_html)
-    index_body = index_body.replace('href="send.html"', 'href="javascript:void(0)" onclick="showView(\'send\')"')
-    index_body = index_body.replace('href="recv.html"', 'href="javascript:void(0)" onclick="showView(\'recv\')"')
+    index_body = index_body.replace('href="send.html"', 'href="javascript:void(0)" onclick="if(event)event.stopPropagation(); showView(\'send\')"')
+    index_body = index_body.replace('href="recv.html"', 'href="javascript:void(0)" onclick="if(event)event.stopPropagation(); showView(\'recv\')"')
+    index_body = index_body.replace('class="card card-send"', 'class="card card-send" onclick="showView(\'send\')" style="cursor: pointer;"')
+    index_body = index_body.replace('class="card card-recv"', 'class="card card-recv" onclick="showView(\'recv\')" style="cursor: pointer;"')
     
     send_body = extract_body_elements(send_html)
     send_body = send_body.replace('href="index.html"', 'href="javascript:void(0)" onclick="showView(\'hub\')"')
@@ -219,6 +229,7 @@ def main():
     recv_body = recv_body.replace('id="nav-container"', 'id="recv-nav-container"')
     recv_body = recv_body.replace('id="nav-button"', 'id="recv-nav-button"')
     recv_body = recv_body.replace('id="nav-content"', 'id="recv-nav-content"')
+    recv_body = recv_body.replace('id="cam-switch-item"', 'id="recv-cam-switch-item"')
     recv_body = recv_body.replace('Recv.blurNav()', 'Recv.blurNav()')
     recv_body = recv_body.replace('Recv.clickNav()', 'Recv.clickNav()')
     recv_body = recv_body.replace("Recv.setMode('Auto')", "Recv.setMode('Auto', true)")
@@ -439,7 +450,7 @@ def main():
         onRuntimeInitialized: () => {{
           console.log("Main thread WASM loaded.");
           Main.init(canvas);
-          Main.setMode('B');
+          Main.setMode('Bm');
           Main.togglePause(true); // Start paused until entered
         }}
       }};
@@ -516,6 +527,9 @@ def main():
     }});
 
     function showView(viewId) {{
+      if (currentView === viewId) {{
+        return;
+      }}
       console.log("Routing to view: " + viewId);
       currentView = viewId;
       updateScrollState(viewId);
@@ -584,6 +598,9 @@ def main():
         video.srcObject = null;
         console.log("Camera stream stopped.");
       }}
+      if (typeof Recv !== 'undefined') {{
+        Recv.stop_video();
+      }}
     }}
 
 
@@ -593,7 +610,10 @@ def main():
       if (startSendBtn) {{
         startSendBtn.href = "javascript:void(0)";
         startSendBtn.onclick = (e) => {{
-          if (e) e.preventDefault();
+          if (e) {{
+            e.preventDefault();
+            e.stopPropagation();
+          }}
           showView('send');
         }};
       }}
@@ -602,7 +622,10 @@ def main():
       if (startRecvBtn) {{
         startRecvBtn.href = "javascript:void(0)";
         startRecvBtn.onclick = (e) => {{
-          if (e) e.preventDefault();
+          if (e) {{
+            e.preventDefault();
+            e.stopPropagation();
+          }}
           showView('recv');
         }};
       }}
@@ -640,13 +663,6 @@ def main():
       // Configure drag-drop overlays to work in SPA view
       const sendDragDrop = document.getElementById('dragdrop');
       const sendCurrentFile = document.getElementById('send-current-file') || document.getElementById('current-file');
-      
-      if (sendDragDrop) {{
-        sendDragDrop.addEventListener('click', (e) => {{
-          if (canvas.classList.contains('active')) return;
-          Main.clickFileInput();
-        }});
-      }}
 
       // Hook Main.setHTML to ensure transition is immediate and guaranteed
       const origSetHTML = Main.setHTML;
@@ -702,36 +718,19 @@ def main():
         observer.observe(sendCurrentFile, {{ childList: true, characterData: true, subtree: true }});
       }}
 
-      // Window-level drag & drop support across views (Hub and Send)
-      window.addEventListener("dragover", (e) => {{
-        e.preventDefault();
-        document.body.style["opacity"] = 0.7;
-      }}, false);
-
-      window.addEventListener("dragleave", (e) => {{
-        e.preventDefault();
-        document.body.style["opacity"] = 1.0;
-      }}, false);
-
-      window.addEventListener("drop", (e) => {{
-        e.preventDefault();
-        e.stopPropagation();
-        document.body.style["opacity"] = 1.0;
-        showView('send');
-        if (typeof Main !== 'undefined') {{
-          Main.dragDrop(e);
-        }}
-      }}, false);
-
       // Override Main/Recv clickNav and blurNav to use .open class toggle
       if (typeof Main !== 'undefined') {{
         Main.blurNav = function(pause) {{
           const nav = document.getElementById("send-nav-container");
           if (nav) nav.classList.remove("open");
+          const btn = document.getElementById("send-nav-button");
+          if (btn) btn.classList.remove("open");
         }};
         Main.clickNav = function() {{
           const nav = document.getElementById("send-nav-container");
           if (nav) nav.classList.toggle("open");
+          const btn = document.getElementById("send-nav-button");
+          if (btn) btn.classList.toggle("open");
         }};
       }}
       if (typeof Recv !== 'undefined') {{

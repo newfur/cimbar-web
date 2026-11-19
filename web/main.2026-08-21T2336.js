@@ -155,11 +155,15 @@ var Main = function () {
       var canvas = document.getElementById('canvas');
       var textCard = document.getElementById('text-card');
       var qrDisplayCard = document.getElementById('qr-display-card');
+      var navBtn = document.getElementById('nav-button') || document.getElementById('send-nav-button');
+      var navContainer = document.getElementById('nav-container') || document.getElementById('send-nav-container');
 
       if (tab === 'file') {
         if (fileTabBtn) fileTabBtn.classList.add('active');
         if (textTabBtn) textTabBtn.classList.remove('active');
         if (textCard) textCard.classList.add('hidden');
+        if (navBtn) navBtn.classList.remove('hidden');
+        if (navContainer) navContainer.classList.remove('hidden');
 
         if (canvas && canvas.classList.contains('has-file')) {
           canvas.classList.add('active');
@@ -182,6 +186,14 @@ var Main = function () {
         if (textTabBtn) textTabBtn.classList.add('active');
         if (dragdrop) dragdrop.classList.add('hidden');
         if (canvas) canvas.classList.remove('active');
+        if (navBtn) {
+          navBtn.classList.add('hidden');
+          navBtn.classList.remove('open');
+        }
+        if (navContainer) {
+          navContainer.classList.add('hidden');
+          navContainer.classList.remove('open');
+        }
         Main.togglePause(true);
 
         if (textCard) {
@@ -590,7 +602,11 @@ var Main = function () {
     dragDrop: function (event) {
       console.log("drag drop?");
       console.log(event);
-      const files = event.dataTransfer.files;
+      if (event) {
+        if (event.preventDefault) event.preventDefault();
+        if (event.stopPropagation) event.stopPropagation();
+      }
+      const files = event.dataTransfer ? event.dataTransfer.files : null;
       if (files && files.length === 1) {
         Main.importFile(files[0]);
       }
@@ -623,14 +639,19 @@ var Main = function () {
     },
 
     clickFileInput: function () {
-      document.getElementById("file_input").click();
+      var fileInput = document.getElementById("file_input");
+      if (fileInput) fileInput.click();
     },
 
     fileInput: function (ev) {
       console.log("file input: " + ev);
-      var file = document.getElementById('file_input').files[0];
+      var fileElem = document.getElementById('file_input');
+      var file = fileElem ? fileElem.files[0] : null;
       if (file) {
         Main.importFile(file);
+      }
+      if (fileElem) {
+        fileElem.value = '';
       }
       Main.blurNav(false);
     },

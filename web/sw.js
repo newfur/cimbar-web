@@ -1,14 +1,14 @@
-var CACHE_NAME = 'cimbar-send-v2026-08-21T2336';
+var CACHE_NAME = 'cimbar-send-v2026-11-18T0531';
 var PRECACHE_URLS = [
   './',
   './index.html',
   './send.html',
   './i18n.js',
-  './cimbar_js.2026-08-21T2336.js',
-  './cimbar_js.2026-08-21T2336.wasm',
-  './send.2026-08-21T2336.js',
-  './main.2026-08-21T2336.js',
-  './pwa.2026-08-21T2336.json',
+  './cimbar_js.2026-11-18T0531.js',
+  './cimbar_js.2026-11-18T0531.wasm',
+  './send.2026-11-18T0531.js',
+  './main.2026-11-18T0531.js',
+  './pwa.2026-11-18T0531.json',
   './favicon.ico',
   './icon-192x192.png',
   './icon-512x512.png'

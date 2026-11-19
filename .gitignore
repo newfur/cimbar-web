@@ -6,3 +6,14 @@ cfc/
 build-kylin-arm64/
 Cimbar 传输中心.html
 二维码传输中心.html
+
+# Android build outputs & local files
+.gradle/
+android/.gradle/
+android/build/
+android/app/build/
+android/app/src/main/assets/web/
+android/local.properties
+*.apk
+*.aab
+

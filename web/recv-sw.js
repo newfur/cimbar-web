@@ -1,13 +1,13 @@
-var CACHE_NAME = 'cimbar-recv-v2026-08-21T2336';
+var CACHE_NAME = 'cimbar-recv-v2026-11-18T0531';
 var PRECACHE_URLS = [
   './recv.html',
   './i18n.js',
-  './recv.2026-08-21T2336.js',
-  './recv-worker.2026-08-21T2336.js',
-  './cimbar_js.2026-08-21T2336.js',
-  './cimbar_js.2026-08-21T2336.wasm',
-  './zstd.2026-08-21T2336.js',
-  './pwa-recv.2026-08-21T2336.json',
+  './recv.2026-11-18T0531.js',
+  './recv-worker.2026-11-18T0531.js',
+  './cimbar_js.2026-11-18T0531.js',
+  './cimbar_js.2026-11-18T0531.wasm',
+  './zstd.2026-11-18T0531.js',
+  './pwa-recv.2026-11-18T0531.json',
   './favicon.ico',
   './icon-192x192.png',
   './icon-512x512.png'

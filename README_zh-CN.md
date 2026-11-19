@@ -28,7 +28,7 @@ Cimbar-Web 是一个独立的 UI 与浏览器工程。底层的图像提取、�
 项目纯静态，直接将 `web/` 目录挂载到任意 Web 服务器（如 Nginx、Vercel 或 GitHub Pages）即可使用。
 
 ### 单文件离线版 (Portable)
-你可以直接从 GitHub 下载我们预编译好的完整单文件，无需克隆代码库：
+你也可以直接从 GitHub 下载我们预编译好的完整单文件，无需克隆代码库：
 👉 [**点击下载 cimbar_portable.html**](https://raw.githubusercontent.com/newfur/cimbar-web/main/cimbar_portable.html) *(建议右键 -> 链接另存为...)*
 
 或者，如果你克隆了本代码库，也可以使用提供的 Python 打包脚本自行生成：
@@ -36,6 +36,17 @@ Cimbar-Web 是一个独立的 UI 与浏览器工程。底层的图像提取、�
 python3 build_portable.py
 ```
 执行完毕后，根目录下生成的 `cimbar_portable.html` 即为完整的单文件。你可以把它通过 U 盘拷贝到任何完全断网的设备上使用。
+
+### 📱 Android 客户端 (APK)
+本项目已封装为独立的 Android 原生客户端，内置离线全量 WebAssembly 运行时与摄像头扫码支持：
+* **自动编译与下载**：仓库配置了 GitHub Actions 自动化工作流。每次推送到 `main` 分支或在 Actions 页面点击手动触发时，会自动编译生成 APK。前往 GitHub 仓库的 **Actions** 标签页，点击最新构建任务即可在 **Artifacts** 中下载 `Cimbar-Transfer-APK`。
+* **版本发布**：给仓库推送版本标签（例如 `git tag v1.1.0 && git push origin v1.1.0`）时，GitHub Actions 会自动创建 GitHub Release 并附加 APK 文件供用户直接下载。
+* **本地编译**：
+  ```bash
+  cd android
+  ./gradlew assembleRelease
+  ```
+  生成的安装包位于 `android/app/build/outputs/apk/release/`。
 
 ## 🙏 鸣谢
 

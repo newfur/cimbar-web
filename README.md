@@ -37,6 +37,17 @@ python3 build_portable.py
 ```
 After execution, the generated `cimbar_portable.html` in the root directory is a complete standalone file. You can copy it via a USB drive to any completely disconnected device for use.
 
+### 📱 Android Client (APK)
+This project is packaged as an Android application with offline WebAssembly runtime, camera scanning, and file transfer capabilities:
+* **Automated CI/CD**: Configured with GitHub Actions. Every push to the `main` branch or manual workflow dispatch automatically builds the APK. You can download the latest `Cimbar-Transfer-APK` directly from the **Artifacts** section on GitHub's **Actions** page.
+* **Releases**: Pushing a version tag (e.g., `v1.1.0`) automatically publishes a GitHub Release with the APK attached.
+* **Local Build**:
+  ```bash
+  cd android
+  ./gradlew assembleRelease
+  ```
+  The resulting APK will be located at `android/app/build/outputs/apk/release/`.
+
 ## 🙏 Acknowledgements
 
 Special thanks to [**@sz3**](https://github.com/sz3) and their open-source [**libcimbar**](https://github.com/sz3/libcimbar) repository!

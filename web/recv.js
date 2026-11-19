@@ -3,9 +3,13 @@ var Sink = function () {
   var _fountainBuff = undefined;
   var _errBuff = undefined;
   var _errBuffSize = 1024;
+  var _isReassembling = false;
+  var _lastReassembledId = null;
 
   function fountain_buff() {
-    if (_fountainBuff.buffer !== Module.HEAPU8.buffer) {
+    if (!_fountainBuff) {
+      Sink.allocate();
+    } else if (_fountainBuff.buffer !== Module.HEAPU8.buffer) {
       _fountainBuff = new Uint8Array(Module.HEAPU8.buffer, _fountainBuff.byteOffset, _fountainBuff.byteLength);
     }
     return _fountainBuff;
@@ -32,7 +36,7 @@ var Sink = function () {
       const fountBuff = fountain_buff();
       fountBuff.set(buff);
 
-      console.log('sink decode ' + fountBuff); //TODO: base64?
+      //console.log('sink decode ' + fountBuff); //TODO: base64?
       var res = Module._cimbard_fountain_decode(fountBuff.byteOffset, buff.length);
       console.log("on decode got res " + res);
 
@@ -45,8 +49,13 @@ var Sink = function () {
       }
 
       if (res > 0) {
-        const res32t = Number(res & 0xFFFFFFFFn);; // truncate BigInt res (int64_t) to a uint32_t
-        Sink.reassemble_file(res32t);
+        // truncate BigInt res (int64_t) to a uint32_t safely
+        const res32t = (typeof res === 'bigint') ? Number(res & BigInt(0xFFFFFFFF)) : (res >>> 0);
+        if (!_isReassembling && _lastReassembledId !== res32t) {
+          _isReassembling = true;
+          _lastReassembledId = res32t;
+          Sink.reassemble_file(res32t);
+        }
       }
     },
 
@@ -77,8 +86,7 @@ var Sink = function () {
         }
         const fnsize = Module._cimbard_get_filename(id, _errBuff, _errBuffSize);
         if (fnsize < 0) {
-          alert("reassemble_file failed :(" + fnsize);
-          console.log("we biffed it. :( " + fnsize);
+          console.log("reassemble_file failed. :( " + fnsize);
           Recv.set_HTML("errorbox", "reassemble_file failed :( " + fnsize);
         }
         else if (fnsize > 0) {
@@ -87,6 +95,7 @@ var Sink = function () {
         }
         Zstd.decompress(name, id);
       } catch (error) {
+        _isReassembling = false;
         console.log("failed finish copy or download?? " + error);
       }
     }
@@ -102,19 +111,24 @@ var Recv = function () {
   var _renderTime = 0;
   var _captureNextFrame = 0;
 
-  var _watchmanEnabled = 0;
+  var _watchmanTimer = undefined;
   var _watchmanLastSeen = 1; // start at 1, can't restart if we never started
+  var _vfcId = undefined;
 
-  var _video = 0;
+  var _video = undefined;
+  var _cameraAcquiring = false;
+  var _availableCameras = [];
+  var _currentCameraIndex = 0;
+  var _currentDeviceId = undefined;
   var _workers = [];
   var _nextWorker = 0;
   var _workerReady;
   var _framesInFlight = 0;
+  var _useVideoFrame = true;
   var _supportedFormats = ["NV12", "I420"]; // have cimbard_* return this somehow?
 
   var _mode = 0;
   var _userMode = 0;
-
   var _qrScanningEnabled = true;
   var _lastQRScanTime = 0;
   var _qrCooldownUntil = 0;
@@ -125,80 +139,68 @@ var Recv = function () {
   var _qrCanvas = null;
   var _qrCtx = null;
 
-  if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
+  // Initialize BarcodeDetector for native fast QR decoding if supported
+  if ('BarcodeDetector' in window) {
     try {
       _barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
     } catch (e) {
-      console.warn("BarcodeDetector init failed:", e);
+      _barcodeDetector = null;
     }
   }
 
-  function _toggleFullscreen() {
-    if (document.fullscreenElement) {
-      return document.exitFullscreen();
+  function _requestVideoFrame(callback) {
+    if (_video && 'requestVideoFrameCallback' in _video) {
+      _vfcId = _video.requestVideoFrameCallback(callback);
     }
-    else {
-      return document.documentElement.requestFullscreen();
+  }
+
+  function _cancelVideoFrameCallback() {
+    if (_vfcId && _video && 'cancelVideoFrameCallback' in _video) {
+      try {
+        _video.cancelVideoFrameCallback(_vfcId);
+      } catch (e) {}
+      _vfcId = undefined;
     }
   }
 
   function isIOS() {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    const isAppleDevice = navigator.userAgent.includes('Macintosh');
-    const isTouchScreen = navigator.maxTouchPoints >= 1;
-    return isIOS || (isAppleDevice && isTouchScreen);
+    return [
+      'iPad Simulator',
+      'iPhone Simulator',
+      'iPod Simulator',
+      'iPad',
+      'iPhone',
+      'iPod'
+    ].includes(navigator.platform)
+      // iPad on iOS 13 detection
+      || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
   }
 
-  function _getModeAspectRatio(mode) {
-    // (image_size_x + 16) / (image_size_y + 16)
-    switch (mode) {
-      case 66: return 1.1516; // Bu
-      case 67: return 1.413;  // Bm
-      default: return 1.0;    // B, 4C, auto
+  function _toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen();
     }
   }
 
   function _updateCrosshairPositions() {
-    if (!_video || !_video.videoWidth || !_video.videoHeight)
-      return;
-
-    var modeAspect = _getModeAspectRatio(_mode);
-
-    var container = document.getElementById("container");
-    var windowW = container ? container.clientWidth : window.innerWidth;
-    var windowH = container ? container.clientHeight : window.innerHeight;
-    var camAspect = _video.videoWidth / _video.videoHeight;
-    var windowAspect = windowW / windowH;
-
-    var vidW = windowW;
-    var vidH = windowH;
-    if (camAspect > windowAspect)  // black bars top/bottom
-      vidH = vidW / camAspect;
-    else  // black bars left/right
-      vidW = vidH * camAspect;
-
-    var offsetY;
-    var offsetX;
-    if (windowH > windowW) {
-      // portrait
-      offsetY = (windowH - (vidW * modeAspect)) / 2;
-      offsetX = (windowW - vidW) / 2;
-    }
-    else {
-      offsetY = (windowH - vidH) / 2;
-      offsetX = (windowW - (vidH * modeAspect)) / 2;
-    }
-
-    var logme = "crosshair offsets now " + offsetX + ", " + offsetY;
-    //Recv.set_error(logme);
-    console.log(logme);
+    // try to make the crosshairs square
+    const rect = _video.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    const dim = Math.min(w, h);
+    const offsetX = (w - dim) / 2;
+    const offsetY = (h - dim) / 2;
 
     var xh1 = document.getElementById("crosshair1");
     var xh2 = document.getElementById("crosshair2");
-    xh1.style.top = offsetY + "px";
-    xh1.style.right = offsetX + "px";
-    xh2.style.bottom = offsetY + "px";
-    xh2.style.left = offsetX + "px";
+    if (xh1 && xh2) {
+      xh1.style.top = offsetY + "px";
+      xh1.style.right = offsetX + "px";
+      xh2.style.bottom = offsetY + "px";
+      xh2.style.left = offsetX + "px";
+    }
   }
 
   // public interface
@@ -228,8 +230,21 @@ var Recv = function () {
     },
 
     init_ww: function (num_workers) {
-      // clean up _workers if exists?
+      if (!num_workers) {
+        const hcon = (typeof navigator !== 'undefined' && typeof navigator.hardwareConcurrency === 'number')
+          ? navigator.hardwareConcurrency : 0;
+        const desiredWorkers = (hcon / 2) + 1;
+        num_workers = Math.max(3, Math.min(desiredWorkers, 6)); // clamp[3,6]
+      }
+
+      // clean up _workers if exists
+      for (const wkr of _workers) {
+        try {
+          wkr.terminate();
+        } catch (e) { }
+      }
       _workers = [];
+
       for (let i = 0; i < num_workers; i++) {
         _workers.push(new Worker('recv-worker.js'));
 
@@ -247,35 +262,90 @@ var Recv = function () {
       _video = video;
       window.addEventListener('resize', _updateCrosshairPositions);
 
-      // Optimal HD constraints requiring at least 720p resolution
-      var constraints = {
-        audio: false,
-        video: {
-          width: { min: 720, ideal: 1920 },
-          height: { min: 720, ideal: 1080 },
-          facingMode: 'environment',
-          frameRate: { ideal: 15 }
-        }
-      };
+      // If camera is already actively running on this video element, do not re-request!
+      if (_video && _video.srcObject && _video.srcObject.active) {
+        console.log("Camera is already active, reusing existing stream.");
+        return;
+      }
+
+      // If a camera permission/acquisition request is currently in flight, do NOT send a duplicate request!
+      if (_cameraAcquiring) {
+        console.log("Camera acquisition already in flight, ignoring duplicate request.");
+        return;
+      }
+      _cameraAcquiring = true;
+
+      // Clean up previous stream and frame callbacks
+      Recv.stop_video();
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        _cameraAcquiring = false;
         return Recv.set_error('mediaDevices not supported? :(');
       }
 
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+      // On desktop, target maximum resolution (up to 4K: 3840x2160) so the browser automatically negotiates
+      // the highest resolution mode supported by the hardware without overconstraining.
+      // On mobile, clamp to 1080p @ 15-30fps to avoid excessive GPU/thermal load.
+      const videoConstraints = isMobile ? {
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        facingMode: { ideal: 'environment' },
+        frameRate: { ideal: 15 }
+      } : {
+        width: { ideal: 3840 },
+        height: { ideal: 2160 },
+        frameRate: { ideal: 30 }
+      };
+
+      if (_currentDeviceId) {
+        videoConstraints.deviceId = { exact: _currentDeviceId };
+      }
+
+      var constraints = {
+        audio: false,
+        video: videoConstraints
+      };
+
       function handleStreamSuccess(localMediaStream) {
-        //console.log(localMediaStream);
-        //console.dir(video);
+        _cameraAcquiring = false;
         if ('srcObject' in video) {
           video.srcObject = localMediaStream;
         } else {
           video.src = URL.createObjectURL(localMediaStream); //deprecated
         }
-        video.play();
-        video.requestVideoFrameCallback(Recv.on_frame);
+        video.muted = true;
+        video.playsInline = true;
+        video.setAttribute('playsinline', '');
+        video.play().catch(e => console.warn('video.play() rejected:', e));
+        _requestVideoFrame(Recv.on_frame);
 
-        // Optimize focus constraints on active stream track
+        // Optimize focus and sharpness constraints on active stream track
         const track = localMediaStream.getVideoTracks()[0];
         if (track) {
+          const settings = typeof track.getSettings === 'function' ? track.getSettings() : {};
+          const w = settings.width || video.videoWidth;
+          const h = settings.height || video.videoHeight;
+          const fps = Math.round(settings.frameRate || 30);
+          const camLabel = track.label || "Camera";
+          console.log(`Camera stream acquired: ${w}x${h} @ ${fps}fps (${camLabel})`);
+          Recv.set_HTML("tdec", `${w}x${h} (${fps}fps)`);
+
+          if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+            navigator.mediaDevices.enumerateDevices().then(devices => {
+              _availableCameras = devices.filter(d => d.kind === 'videoinput');
+              const switchEl = document.getElementById('cam-switch-item') || document.getElementById('recv-cam-switch-item');
+              if (switchEl) {
+                if (_availableCameras.length > 1) {
+                  switchEl.classList.remove('hidden');
+                } else {
+                  switchEl.classList.add('hidden');
+                }
+              }
+            }).catch(e => console.warn('enumerateDevices error:', e));
+          }
+
           setTimeout(() => {
             const capabilities = typeof track.getCapabilities === 'function' ? track.getCapabilities() : {};
             const advancedConstraints = {};
@@ -284,6 +354,9 @@ var Recv = function () {
             }
             if (capabilities.exposureMode && capabilities.exposureMode.includes('continuous')) {
               advancedConstraints.exposureMode = 'continuous';
+            }
+            if (capabilities.sharpness && capabilities.sharpness.max) {
+              advancedConstraints.sharpness = capabilities.sharpness.max;
             }
             if (Object.keys(advancedConstraints).length > 0) {
               track.applyConstraints({ advanced: [advancedConstraints] })
@@ -299,7 +372,6 @@ var Recv = function () {
               container.removeEventListener('click', container._focusListener);
             }
             container._focusListener = function(event) {
-              // Ignore clicks inside the settings nav panel to avoid unwanted focus rings
               const navContainer = document.getElementById('recv-nav-container') || document.getElementById('nav-container');
               if (navContainer && navContainer.contains(event.target)) {
                 return;
@@ -307,7 +379,6 @@ var Recv = function () {
 
               const capabilities = typeof track.getCapabilities === 'function' ? track.getCapabilities() : {};
 
-              // 1. Create and animate focus feedback ring
               const ring = document.createElement('div');
               ring.className = 'focus-ring';
               ring.style.left = event.clientX + 'px';
@@ -315,7 +386,6 @@ var Recv = function () {
               container.appendChild(ring);
               setTimeout(() => ring.remove(), 800);
 
-              // 2. Apply focus adjustment constraints
               const rect = video.getBoundingClientRect();
               const x = (event.clientX - rect.left) / rect.width;
               const y = (event.clientY - rect.top) / rect.height;
@@ -348,38 +418,47 @@ var Recv = function () {
       navigator.mediaDevices.getUserMedia(constraints)
         .then(handleStreamSuccess)
         .catch(err => {
-          console.warn("First getUserMedia request failed, retrying with fallback constraints...", err);
-          var fallbackConstraints = {
-            audio: false,
-            video: {
-              facingMode: 'environment',
-              frameRate: { ideal: 15 }
-            }
-          };
-          return navigator.mediaDevices.getUserMedia(fallbackConstraints)
-            .then(handleStreamSuccess)
-            .catch(fallbackErr => {
-              console.error(`OH NO!!!!`, fallbackErr);
-              Recv.set_error("Failed to initialize camera. " + fallbackErr);
-              Recv.set_HTML("crosshair1", "Failed to initialize camera. " + fallbackErr);
-            });
+          _cameraAcquiring = false;
+          console.warn("getUserMedia failed:", err);
+          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            Recv.set_error("Camera permission denied. Please allow camera access in browser settings.");
+            Recv.set_HTML("crosshair1", "Camera permission denied.");
+          } else {
+            Recv.set_error("Failed to initialize camera: " + (err.message || err.name));
+            Recv.set_HTML("crosshair1", "Failed to initialize camera: " + (err.name || err));
+          }
         });
     },
 
+    stop_video: function () {
+      _cameraAcquiring = false;
+      _cancelVideoFrameCallback();
+      if (_video && _video.srcObject) {
+        try {
+          _video.srcObject.getTracks().forEach(track => track.stop());
+        } catch (e) {}
+        _video.srcObject = null;
+      }
+      if (_video && _video.src) {
+        try {
+          URL.revokeObjectURL(_video.src);
+        } catch (e) {}
+        _video.src = "";
+      }
+      if (_watchmanTimer > 0) {
+        clearInterval(_watchmanTimer);
+        _watchmanTimer = 0;
+      }
+    },
+
     watch_for_camera_pause: function () {
-      // only call this after our first success
-      if (_watchmanEnabled) {
+      if (_watchmanTimer) {
         return;
       }
-      _watchmanEnabled = true;
-
-      // ios only for now, since desktop behavior is weird
       if (!isIOS()) {
         return;
       }
-
-      // periodically make sure the camera capture is running
-      setInterval(Recv.restart_paused_camera, 1000);
+      _watchmanTimer = setInterval(Recv.restart_paused_camera, 1500);
     },
 
     restart_paused_camera: function () {
@@ -387,13 +466,11 @@ var Recv = function () {
         return;
       }
 
-      // if we're still incrementing, do nothing
       if (_counter > _watchmanLastSeen) {
         _watchmanLastSeen = _counter;
         return;
       }
 
-      // if not, we're stuck?
       Recv.init_video(_video);
     },
 
@@ -403,14 +480,19 @@ var Recv = function () {
     },
 
     on_decode: function (wid, data) {
-      //console.log('Main thread received message from worker' + wid + ':', data);
+      if (data.type == 'startWasm') {
+        if (data.ready && _workerReady) {
+          _workerReady();
+        }
+        return;
+      }
+
       Recv.frames_in_flight_decr();
-      // if extract but no bytes, log extract counte
       if (data.nodata) {
         _recentExtract = _counter;
         return;
       }
-      if (data.failed_extract) { // very common, nothing to do
+      if (data.failed_extract) {
         return;
       }
       if (data.res) {
@@ -422,79 +504,141 @@ var Recv = function () {
           _workerReady();
         return;
       }
+      if (data.error) {
+        console.log("on_decode error: " + data.error);
+        return;
+      }
 
-      // should be a decode with some bytes, so set decodecounter
       _recentDecode = _counter;
 
       const buff = data.buff;
-      if (buff.length > 0) {
-        Recv.setMode(data.mode); // call *before* we send it to the sink. This is our autodetect confirm.
+      if (buff && buff.length > 0) {
+        Recv.setMode(data.mode);
+        Recv.set_HTML("t" + wid, "mode is " + _mode + ", len() is " + buff.length + ", buff: " + buff);
+        Sink.on_decode(buff);
       }
-      Recv.set_HTML("t" + wid, "mode is " + _mode + ", len() is " + buff.length + ", buff: " + buff);
-      Sink.on_decode(buff);
     },
 
-    on_frame: function (now, metadata) {
-      //console.log("on frame");
-      // https://developer.mozilla.org/en-US/docs/Web/API/VideoFrame
+    on_frame_vf: async function (now) {
+      let vf = undefined;
+      try {
+        vf = new VideoFrame(_video, { timestamp: now });
+      } catch (e) {
+        console.log("no VideoFrame support, falling back to ImageBitmap");
+        return undefined;
+      }
 
+      try {
+        const width = vf.displayWidth;
+        const height = vf.displayHeight;
+        Recv.set_HTML("errorbox", vf.format, true);
+
+        let vfparams = {};
+        if (!_supportedFormats.includes(vf.format)) {
+          vfparams.format = "RGBA";
+        }
+        const size = vf.allocationSize(vfparams);
+        const buff = new Uint8Array(size);
+        await vf.copyTo(buff, vfparams);
+
+        let format = vfparams.format || vf.format;
+        if (format == "RGBA" && size != width * height * 4) {
+          format = vf.format;
+        }
+
+        if (_captureNextFrame == 1) {
+          _captureNextFrame = 0;
+          Recv.download_bytes(buff, width + "x" + height + "x" + _counter + "." + format);
+        }
+
+        return {
+          type: 'proc',
+          pixels: buff,
+          format: format,
+          width: width,
+          height: height
+        };
+      } catch (e) {
+        console.error("on_frame_vf error:", e);
+        return { type: 'fail' };
+      } finally {
+        vf.close();
+      }
+    },
+
+    on_frame: async function (now, metadata) {
       _counter += 1;
       if (_workers.length == 0)
         return;
       if (_nextWorker >= _workers.length)
         _nextWorker = 0;
 
-      // piggyback off this call to make sure our visual state is correct
       Recv.update_visual_state();
-      // make sure the camera feed stays up
       Recv.watch_for_camera_pause();
-      // Check for static QR codes
       Recv.check_qr_frame(now);
 
-      const modeVals = [66, 68, 67, 4];
+      const modeVals = [67, 68, 66, 129, 4];
 
-      var vf = undefined;
-      if (_framesInFlight > 20) {
-        console.log("stalling, worker queues are full");
+      if (_framesInFlight > 30) {
+        _requestVideoFrame(Recv.on_frame);
+        return;
       }
-      else {
-        Recv.frames_in_flight_incr();
+
+      let mode = _mode || modeVals[_counter % modeVals.length];
+      let bitmap = undefined;
+      let workerMsg = undefined;
+
+      if (_useVideoFrame) {
+        workerMsg = await Recv.on_frame_vf(now);
+        if (!workerMsg) {
+          _useVideoFrame = false;
+        } else if (workerMsg.type == "fail") {
+          workerMsg = undefined;
+        } else {
+          workerMsg.mode = mode;
+        }
+      }
+
+      if (!_useVideoFrame && _video && _video.videoWidth > 0 && _video.videoHeight > 0) {
         try {
-          vf = new VideoFrame(_video, { timestamp: now });
-          const width = vf.displayWidth;
-          const height = vf.displayHeight;
-          Recv.set_HTML("errorbox", vf.format, true);
-
-          // try to use the default format, but only if we can decode it...
-          let vfparams = {};
-          if (!_supportedFormats.includes(vf.format)) {
-            vfparams.format = "RGBA";
-          }
-          const size = vf.allocationSize(vfparams);
-          const buff = new Uint8Array(size);
-          vf.copyTo(buff, vfparams);
-
-          let format = vfparams.format || vf.format;
-          if (format == "RGBA" && size != width * height * 4) {
-            format = vf.format; //fallback
-          }
-          if (_captureNextFrame == 1) {
-            _captureNextFrame = 0;
-            Recv.download_bytes(buff, width + "x" + height + "x" + _counter + "." + format);
-          }
-
-          let mode = _mode || modeVals[_counter % modeVals.length];
-          _workers[_nextWorker].postMessage({ type: 'proc', pixels: buff, format: format, width: width, height: height, mode: mode }, [buff.buffer]);
+          const width = _video.videoWidth;
+          const height = _video.videoHeight;
+          bitmap = await createImageBitmap(_video);
+          workerMsg = {
+            type: 'proc',
+            bitmap: bitmap,
+            format: "RGBA",
+            width: width,
+            height: height,
+            mode: mode
+          };
         } catch (e) {
-          console.log(e);
+          console.warn("createImageBitmap fallback error:", e);
+        }
+      }
+
+      if (!workerMsg) {
+        _requestVideoFrame(Recv.on_frame);
+        return;
+      }
+
+      Recv.frames_in_flight_incr();
+      try {
+        if (workerMsg.pixels) {
+          _workers[_nextWorker].postMessage(workerMsg, [workerMsg.pixels.buffer]);
+        } else if (bitmap) {
+          _workers[_nextWorker].postMessage(workerMsg, [bitmap]);
         }
         _nextWorker += 1;
+      } catch (e) {
+        Recv.frames_in_flight_decr();
+        if (bitmap) {
+          try { bitmap.close(); } catch (_) {}
+        }
+        console.error("postMessage to worker failed:", e);
       }
-      if (vf)
-        vf.close();
 
-      // schedule the next one
-      _video.requestVideoFrameCallback(Recv.on_frame);
+      _requestVideoFrame(Recv.on_frame);
     },
 
     captureFrame: function () {
@@ -502,22 +646,16 @@ var Recv = function () {
       alert("about to capture!");
     },
 
-    download_bytes: function (buff, name) {
-      var blob = new Blob([buff], { type: 'application/octet-stream' });
-      Zstd.download_blob(name, blob);
-    },
-
     update_visual_state: function () {
       _updateCrosshairPositions();
 
-      // check counters
       var xh1 = document.getElementById("crosshair1");
       var xh2 = document.getElementById("crosshair2");
       if (_recentDecode > 0 && _recentDecode + 30 > _counter) {
         xh1.classList.add("active_xhairs");
         xh1.classList.remove("scanning_xhairs");
         xh2.classList.add("active_xhairs");
-        xh1.classList.remove("scanning_xhairs");
+        xh2.classList.remove("scanning_xhairs");
       }
       else if (_recentExtract > 0 && _recentExtract + 30 > _counter) {
         xh1.classList.add("scanning_xhairs");
@@ -525,7 +663,7 @@ var Recv = function () {
         xh2.classList.add("scanning_xhairs");
         xh2.classList.remove("active_xhairs");
       }
-      else { // inactive
+      else {
         xh1.classList.remove("active_xhairs");
         xh1.classList.remove("scanning_xhairs");
         xh2.classList.remove("active_xhairs");
@@ -584,7 +722,6 @@ var Recv = function () {
     },
 
     setMode: function (modeVal, isUserClick) {
-      // these should be moved elsewhere...
       const modeToString = {
         4: "4C",
         8: "8C",
@@ -628,9 +765,7 @@ var Recv = function () {
           }
         }
       } else {
-        // Worker auto-detected a mode
         if (_userMode == 0) {
-          // Lock to the detected mode for the duration of this file transfer
           _mode = modeVal;
           if (_mode > 0) {
             Module._cimbard_configure_decode(_mode);
@@ -841,7 +976,6 @@ var Recv = function () {
         }
         document.body.removeChild(ta);
 
-        // Tertiary fallback: Select directly from visible modal text container
         if (!copied) {
           var contentEl = document.getElementById('qr-result-text');
           if (contentEl) {
@@ -864,7 +998,6 @@ var Recv = function () {
         }
       }
 
-      // Try Clipboard API first if in secure context
       if (window.isSecureContext && navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(function () {
           showSuccess();
@@ -893,6 +1026,18 @@ var Recv = function () {
       if (enabled === undefined) _qrScanningEnabled = !_qrScanningEnabled;
       else _qrScanningEnabled = !!enabled;
       return _qrScanningEnabled;
+    },
+
+    switchCamera: function () {
+      if (_availableCameras.length <= 1) {
+        return;
+      }
+      _currentCameraIndex = (_currentCameraIndex + 1) % _availableCameras.length;
+      _currentDeviceId = _availableCameras[_currentCameraIndex].deviceId;
+      console.log("Switching camera to:", _availableCameras[_currentCameraIndex].label || _currentDeviceId);
+      Recv.stop_video();
+      Recv.init_video(_video);
+      Recv.blurNav();
     },
 
     set_HTML: function (id, msg, only_if_unset) {
