@@ -2705,15 +2705,19 @@
       color: #fff !important;
       box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
     }
-    #drawer-zoom-grid, #drawer-exp-grid {
+    #drawer-mode-grid, #drawer-zoom-grid, #drawer-exp-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 0.4rem;
     }
+    #drawer-mode-grid {
+      grid-template-columns: repeat(2, 1fr);
+      margin-bottom: 0.5rem;
+    }
     #drawer-exp-grid {
       grid-template-columns: repeat(3, 1fr);
     }
-    #drawer-zoom-grid a, #drawer-exp-grid a {
+    #drawer-mode-grid a, #drawer-zoom-grid a, #drawer-exp-grid a {
       color: rgba(35, 33, 84, 0.5);
       padding: 0.4rem 0.5rem;
       border-radius: 8px;
@@ -2725,7 +2729,7 @@
       font-weight: 600;
       transition: all 0.2s;
     }
-    #drawer-zoom-grid a.active, #drawer-exp-grid a.active {
+    #drawer-mode-grid a.active, #drawer-zoom-grid a.active, #drawer-exp-grid a.active {
       color: var(--accent-purple) !important;
       background: rgba(124, 58, 237, 0.1);
       border-color: rgba(124, 58, 237, 0.25);
@@ -3134,10 +3138,10 @@
             </div>
             <div id="preset-robust" class="preset-card" onclick="Main.applyPreset('robust')">
               <div class="preset-header">
-                <span class="preset-title" data-i18n="send_preset_robust">强容错模式 (Bu · 8 FPS)</span>
+                <span class="preset-title" data-i18n="send_preset_robust">强容错模式 (Bu · 20 FPS)</span>
                 <span class="preset-badge" data-i18n="send_preset_robust_badge">电脑镜头友好</span>
               </div>
-              <div class="preset-desc" data-i18n="send_preset_robust_desc">专为低素质电脑摄像头优化：大方块 Bu 稀疏矩阵 + 8 FPS 低帧率，大幅提升低分辨率定焦镜头的识别成功率。</div>
+              <div class="preset-desc" data-i18n="send_preset_robust_desc">专为低素质电脑摄像头优化：大方块 Bu 稀疏矩阵 + 20 FPS 高速传输，高识别率与传输速度兼备。</div>
             </div>
           </div>
         </li>
@@ -3199,6 +3203,16 @@
 
   <!-- Floating Camera Enhancement Controls (Zoom & Anti-Glare HUD) -->
   <div id="recv-hud" class="recv-hud">
+    <!-- Mode Selector -->
+    <div class="hud-group">
+      <span class="hud-label" data-i18n="recv_mode">模式</span>
+      <div class="hud-capsules" id="hud-mode-capsules">
+        <button type="button" class="hud-btn active" data-mode="Auto" onclick="Recv.setMode('Auto', true)" data-i18n="recv_mode_auto">自动</button>
+        <button type="button" class="hud-btn" data-mode="Bu" onclick="Recv.setMode('Bu', true)">Bu</button>
+        <button type="button" class="hud-btn" data-mode="B" onclick="Recv.setMode('B', true)">B</button>
+      </div>
+    </div>
+    <div class="hud-divider"></div>
     <!-- Zoom Selector -->
     <div class="hud-group">
       <span class="hud-label" data-i18n="recv_zoom">变焦</span>
@@ -3242,6 +3256,16 @@
     <div id="recv-nav-content" tabindex="-1">
       <ul>
         <li id="recv-cam-switch-item" class="hidden"><a href="javascript:void(0)" onclick="Recv.switchCamera()" data-i18n="recv_switch_camera">切换摄像头</a></li>
+        <hr>
+        <li class="modesel">
+          <h4 data-i18n="recv_mode_title">解码模式设定</h4>
+          <div id="drawer-mode-grid">
+            <a href="javascript:void(0)" class="active" data-mode="Auto" onclick="Recv.setMode('Auto', true)" data-i18n="recv_mode_auto">自动探测</a>
+            <a href="javascript:void(0)" data-mode="Bu" onclick="Recv.setMode('Bu', true)">Bu (强容错)</a>
+            <a href="javascript:void(0)" data-mode="B" onclick="Recv.setMode('B', true)">B (极速)</a>
+            <a href="javascript:void(0)" data-mode="4C" onclick="Recv.setMode('4C', true)">4C (兼容)</a>
+          </div>
+        </li>
         <hr>
         <li class="modesel">
           <h4 data-i18n="recv_cam_controls">镜头与画质增强</h4>
@@ -14092,9 +14116,12 @@ const i18nDict = {
 
         "send_preset": "Preset Profile",
         "send_preset_std": "Max Speed (B · 15 FPS · ~110 KB/s)",
-        "send_preset_robust": "Robust Mode (Bu · 8 FPS)",
+        "send_preset_robust": "Robust Mode (Bu · 20 FPS)",
         "send_preset_robust_badge": "PC Camera Friendly",
-        "send_preset_robust_desc": "Optimized for poor PC webcams: sparse large-cell Bu matrix + 8 FPS to maximize recognition on low-resolution fixed-focus cameras.",
+        "send_preset_robust_desc": "Optimized for poor PC webcams: sparse large-cell Bu matrix + 20 FPS high speed for maximum recognition and throughput.",
+        "recv_mode": "Mode",
+        "recv_mode_auto": "Auto",
+        "recv_mode_title": "Decode Mode",
         "recv_cam_controls": "Camera Enhancement",
         "recv_zoom": "Zoom",
         "recv_exposure": "Anti-Glare / Exposure",
@@ -14190,9 +14217,12 @@ const i18nDict = {
 
         "send_preset": "预设场景",
         "send_preset_std": "常规极速 (B · 15 FPS · ~110 KB/s)",
-        "send_preset_robust": "强容错模式 (Bu · 8 FPS)",
+        "send_preset_robust": "强容错模式 (Bu · 20 FPS)",
         "send_preset_robust_badge": "电脑镜头友好",
-        "send_preset_robust_desc": "专为低素质电脑摄像头优化：大方块 Bu 稀疏矩阵 + 8 FPS 低帧率，大幅提升低分辨率定焦镜头的识别成功率。",
+        "send_preset_robust_desc": "专为低素质电脑摄像头优化：大方块 Bu 稀疏矩阵 + 20 FPS 高速传输，高识别率与传输速度兼备。",
+        "recv_mode": "模式",
+        "recv_mode_auto": "自动",
+        "recv_mode_title": "解码模式设定",
         "recv_cam_controls": "镜头与画质增强",
         "recv_zoom": "变焦放大",
         "recv_exposure": "防过曝压光",
@@ -15247,7 +15277,7 @@ var Main = function () {
     applyPreset: function (preset) {
       if (preset === 'robust') {
         Main.setMode('Bu');
-        Main.setFPS(8);
+        Main.setFPS(20);
       } else {
         Main.setMode('B');
         Main.setFPS(15);
@@ -15324,7 +15354,7 @@ var Main = function () {
       }
 
       // Sync preset state
-      if (mode_str === "Bu" && Main._currentFPS == 8) {
+      if (mode_str === "Bu" && Main._currentFPS == 20) {
         Main.updatePresetUI('robust');
       } else if (mode_str === "B" && (Main._currentFPS == 15 || !Main._currentFPS)) {
         Main.updatePresetUI('std');
@@ -15357,7 +15387,7 @@ var Main = function () {
       }
 
       // Sync preset state
-      if (Main._currentModeStr === "Bu" && val == 8) {
+      if (Main._currentModeStr === "Bu" && val == 20) {
         Main.updatePresetUI('robust');
       } else if (Main._currentModeStr === "B" && val == 15) {
         Main.updatePresetUI('std');
@@ -16322,6 +16352,7 @@ var Recv = function () {
 
     setMode: function (modeVal, isUserClick) {
       const modeToString = {
+        0: "Auto",
         4: "4C",
         8: "8C",
         66: "Bu",
@@ -16332,7 +16363,7 @@ var Recv = function () {
         "Auto": 0
       };
       for (const val in modeToString) {
-        modeStringToVal[modeToString[val]] = val;
+        modeStringToVal[modeToString[val]] = parseInt(val, 10);
       }
 
       if (modeVal in modeStringToVal) {
@@ -16363,6 +16394,7 @@ var Recv = function () {
             if (modeValEl) modeValEl.innerHTML = modeToString[_mode];
           }
         }
+        Recv.update_mode_ui(_userMode == 0 ? "Auto" : (modeToString[_mode] || "Auto"));
       } else {
         if (_userMode == 0) {
           _mode = modeVal;
@@ -16371,9 +16403,29 @@ var Recv = function () {
             Sink.allocate();
             var modeValEl = document.getElementById("mode-val");
             if (modeValEl) modeValEl.innerHTML = modeToString[_mode] || _mode;
+            Recv.update_mode_ui(modeToString[_mode] || "Auto");
           }
         }
       }
+    },
+
+    update_mode_ui: function (modeStr) {
+      const hudButtons = document.querySelectorAll('#hud-mode-capsules .hud-btn');
+      hudButtons.forEach(btn => {
+        if (btn.getAttribute('data-mode') === modeStr) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      const drawerButtons = document.querySelectorAll('#drawer-mode-grid a');
+      drawerButtons.forEach(btn => {
+        if (btn.getAttribute('data-mode') === modeStr) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
     },
 
     check_qr_frame: function (now) {

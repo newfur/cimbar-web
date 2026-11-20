@@ -711,15 +711,19 @@
       color: #fff !important;
       box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
     }
-    #drawer-zoom-grid, #drawer-exp-grid {
+    #drawer-mode-grid, #drawer-zoom-grid, #drawer-exp-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 0.4rem;
     }
+    #drawer-mode-grid {
+      grid-template-columns: repeat(2, 1fr);
+      margin-bottom: 0.5rem;
+    }
     #drawer-exp-grid {
       grid-template-columns: repeat(3, 1fr);
     }
-    #drawer-zoom-grid a, #drawer-exp-grid a {
+    #drawer-mode-grid a, #drawer-zoom-grid a, #drawer-exp-grid a {
       color: rgba(35, 33, 84, 0.5);
       padding: 0.4rem 0.5rem;
       border-radius: 8px;
@@ -731,7 +735,7 @@
       font-weight: 600;
       transition: all 0.2s;
     }
-    #drawer-zoom-grid a.active, #drawer-exp-grid a.active {
+    #drawer-mode-grid a.active, #drawer-zoom-grid a.active, #drawer-exp-grid a.active {
       color: var(--accent-purple) !important;
       background: rgba(124, 58, 237, 0.1);
       border-color: rgba(124, 58, 237, 0.25);
@@ -815,6 +819,16 @@
 
   <!-- Floating Camera Enhancement Controls (Zoom & Anti-Glare HUD) -->
   <div id="recv-hud" class="recv-hud">
+    <!-- Mode Selector -->
+    <div class="hud-group">
+      <span class="hud-label" data-i18n="recv_mode">模式</span>
+      <div class="hud-capsules" id="hud-mode-capsules">
+        <button type="button" class="hud-btn active" data-mode="Auto" onclick="Recv.setMode('Auto', true)" data-i18n="recv_mode_auto">自动</button>
+        <button type="button" class="hud-btn" data-mode="Bu" onclick="Recv.setMode('Bu', true)">Bu</button>
+        <button type="button" class="hud-btn" data-mode="B" onclick="Recv.setMode('B', true)">B</button>
+      </div>
+    </div>
+    <div class="hud-divider"></div>
     <!-- Zoom Selector -->
     <div class="hud-group">
       <span class="hud-label" data-i18n="recv_zoom">变焦</span>
@@ -858,6 +872,16 @@
     <div id="nav-content" tabindex="-1">
       <ul>
         <li id="cam-switch-item" class="hidden"><a href="javascript:void(0)" onclick="Recv.switchCamera()" data-i18n="recv_switch_camera">切换摄像头</a></li>
+        <hr>
+        <li class="modesel">
+          <h4 data-i18n="recv_mode_title">解码模式设定</h4>
+          <div id="drawer-mode-grid">
+            <a href="javascript:void(0)" class="active" data-mode="Auto" onclick="Recv.setMode('Auto', true)" data-i18n="recv_mode_auto">自动探测</a>
+            <a href="javascript:void(0)" data-mode="Bu" onclick="Recv.setMode('Bu', true)">Bu (强容错)</a>
+            <a href="javascript:void(0)" data-mode="B" onclick="Recv.setMode('B', true)">B (极速)</a>
+            <a href="javascript:void(0)" data-mode="4C" onclick="Recv.setMode('4C', true)">4C (兼容)</a>
+          </div>
+        </li>
         <hr>
         <li class="modesel">
           <h4 data-i18n="recv_cam_controls">镜头与画质增强</h4>

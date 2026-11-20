@@ -772,6 +772,7 @@ var Recv = function () {
 
     setMode: function (modeVal, isUserClick) {
       const modeToString = {
+        0: "Auto",
         4: "4C",
         8: "8C",
         66: "Bu",
@@ -782,7 +783,7 @@ var Recv = function () {
         "Auto": 0
       };
       for (const val in modeToString) {
-        modeStringToVal[modeToString[val]] = val;
+        modeStringToVal[modeToString[val]] = parseInt(val, 10);
       }
 
       if (modeVal in modeStringToVal) {
@@ -813,6 +814,7 @@ var Recv = function () {
             if (modeValEl) modeValEl.innerHTML = modeToString[_mode];
           }
         }
+        Recv.update_mode_ui(_userMode == 0 ? "Auto" : (modeToString[_mode] || "Auto"));
       } else {
         if (_userMode == 0) {
           _mode = modeVal;
@@ -821,9 +823,29 @@ var Recv = function () {
             Sink.allocate();
             var modeValEl = document.getElementById("mode-val");
             if (modeValEl) modeValEl.innerHTML = modeToString[_mode] || _mode;
+            Recv.update_mode_ui(modeToString[_mode] || "Auto");
           }
         }
       }
+    },
+
+    update_mode_ui: function (modeStr) {
+      const hudButtons = document.querySelectorAll('#hud-mode-capsules .hud-btn');
+      hudButtons.forEach(btn => {
+        if (btn.getAttribute('data-mode') === modeStr) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      const drawerButtons = document.querySelectorAll('#drawer-mode-grid a');
+      drawerButtons.forEach(btn => {
+        if (btn.getAttribute('data-mode') === modeStr) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
     },
 
     check_qr_frame: function (now) {
