@@ -720,6 +720,9 @@
       grid-template-columns: repeat(2, 1fr);
       margin-bottom: 0.5rem;
     }
+    #drawer-mode-grid a[data-mode="Auto"] {
+      grid-column: span 2;
+    }
     #drawer-exp-grid {
       grid-template-columns: repeat(3, 1fr);
     }
@@ -825,7 +828,9 @@
       <div class="hud-capsules" id="hud-mode-capsules">
         <button type="button" class="hud-btn active" data-mode="Auto" onclick="Recv.setMode('Auto', true)" data-i18n="recv_mode_auto">自动</button>
         <button type="button" class="hud-btn" data-mode="Bu" onclick="Recv.setMode('Bu', true)">Bu</button>
+        <button type="button" class="hud-btn" data-mode="Bm" onclick="Recv.setMode('Bm', true)">Bm</button>
         <button type="button" class="hud-btn" data-mode="B" onclick="Recv.setMode('B', true)">B</button>
+        <button type="button" class="hud-btn" data-mode="4C" onclick="Recv.setMode('4C', true)">4C</button>
       </div>
     </div>
     <div class="hud-divider"></div>
@@ -878,6 +883,7 @@
           <div id="drawer-mode-grid">
             <a href="javascript:void(0)" class="active" data-mode="Auto" onclick="Recv.setMode('Auto', true)" data-i18n="recv_mode_auto">自动探测</a>
             <a href="javascript:void(0)" data-mode="Bu" onclick="Recv.setMode('Bu', true)">Bu (强容错)</a>
+            <a href="javascript:void(0)" data-mode="Bm" onclick="Recv.setMode('Bm', true)">Bm (平衡)</a>
             <a href="javascript:void(0)" data-mode="B" onclick="Recv.setMode('B', true)">B (极速)</a>
             <a href="javascript:void(0)" data-mode="4C" onclick="Recv.setMode('4C', true)">4C (兼容)</a>
           </div>

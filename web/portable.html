@@ -2714,6 +2714,9 @@
       grid-template-columns: repeat(2, 1fr);
       margin-bottom: 0.5rem;
     }
+    #drawer-mode-grid a[data-mode="Auto"] {
+      grid-column: span 2;
+    }
     #drawer-exp-grid {
       grid-template-columns: repeat(3, 1fr);
     }
@@ -3133,7 +3136,7 @@
           <div class="preset-cards">
             <div id="preset-std" class="preset-card active" onclick="Main.applyPreset('std')">
               <div class="preset-header">
-                <span class="preset-title" data-i18n="send_preset_std">常规极速 (B · 15 FPS · ~110 KB/s)</span>
+                <span class="preset-title" data-i18n="send_preset_std">常规极速 (B · 20 FPS · ~150 KB/s)</span>
               </div>
             </div>
             <div id="preset-robust" class="preset-card" onclick="Main.applyPreset('robust')">
@@ -3157,9 +3160,9 @@
         <li>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
             <h4 style="margin:0;" data-i18n="send_fps">发送帧率 (FPS)</h4>
-            <span id="fps-val" style="font-size:0.85rem; font-weight:700; color:var(--accent-purple);">15 FPS</span>
+            <span id="fps-val" style="font-size:0.85rem; font-weight:700; color:var(--accent-purple);">20 FPS</span>
           </div>
-          <input id="fps-range" type="range" class="range" min="5" max="20" step="1" value="15" oninput="Main.setFPS(this.value)" onchange="Main.setFPS(this.value)" />
+          <input id="fps-range" type="range" class="range" min="5" max="20" step="1" value="20" oninput="Main.setFPS(this.value)" onchange="Main.setFPS(this.value)" />
         </li>
         <li class="small-link"><a href="javascript:void(0)" onclick="Main.toggleFullscreen()" data-i18n="fullscreen">全屏展示模式</a></li>
         <li class="small" style="margin-top:auto; text-align:center; padding-top:1rem; border-top:1px solid var(--glass-border);">
@@ -3209,7 +3212,9 @@
       <div class="hud-capsules" id="hud-mode-capsules">
         <button type="button" class="hud-btn active" data-mode="Auto" onclick="Recv.setMode('Auto', true)" data-i18n="recv_mode_auto">自动</button>
         <button type="button" class="hud-btn" data-mode="Bu" onclick="Recv.setMode('Bu', true)">Bu</button>
+        <button type="button" class="hud-btn" data-mode="Bm" onclick="Recv.setMode('Bm', true)">Bm</button>
         <button type="button" class="hud-btn" data-mode="B" onclick="Recv.setMode('B', true)">B</button>
+        <button type="button" class="hud-btn" data-mode="4C" onclick="Recv.setMode('4C', true)">4C</button>
       </div>
     </div>
     <div class="hud-divider"></div>
@@ -3262,6 +3267,7 @@
           <div id="drawer-mode-grid">
             <a href="javascript:void(0)" class="active" data-mode="Auto" onclick="Recv.setMode('Auto', true)" data-i18n="recv_mode_auto">自动探测</a>
             <a href="javascript:void(0)" data-mode="Bu" onclick="Recv.setMode('Bu', true)">Bu (强容错)</a>
+            <a href="javascript:void(0)" data-mode="Bm" onclick="Recv.setMode('Bm', true)">Bm (平衡)</a>
             <a href="javascript:void(0)" data-mode="B" onclick="Recv.setMode('B', true)">B (极速)</a>
             <a href="javascript:void(0)" data-mode="4C" onclick="Recv.setMode('4C', true)">4C (兼容)</a>
           </div>
@@ -14115,7 +14121,7 @@ const i18nDict = {
         "send_qr_fs_hint": "Click anywhere or press ESC to exit fullscreen",
 
         "send_preset": "Preset Profile",
-        "send_preset_std": "Max Speed (B · 15 FPS · ~110 KB/s)",
+        "send_preset_std": "Max Speed (B · 20 FPS · ~150 KB/s)",
         "send_preset_robust": "Robust Mode (Bu · 20 FPS)",
         "send_preset_robust_badge": "PC Camera Friendly",
         "send_preset_robust_desc": "Optimized for poor PC webcams: sparse large-cell Bu matrix + 20 FPS high speed for maximum recognition and throughput.",
@@ -14216,7 +14222,7 @@ const i18nDict = {
         "send_qr_fs_hint": "点击任意位置或按 ESC 退出全屏",
 
         "send_preset": "预设场景",
-        "send_preset_std": "常规极速 (B · 15 FPS · ~110 KB/s)",
+        "send_preset_std": "常规极速 (B · 20 FPS · ~150 KB/s)",
         "send_preset_robust": "强容错模式 (Bu · 20 FPS)",
         "send_preset_robust_badge": "电脑镜头友好",
         "send_preset_robust_desc": "专为低素质电脑摄像头优化：大方块 Bu 稀疏矩阵 + 20 FPS 高速传输，高识别率与传输速度兼备。",
@@ -14375,7 +14381,7 @@ var Send = function () {
   var _canvas = undefined; // set by init
 
   // configurable
-  var _interval = 66;
+  var _interval = 50;
   var _colorBalance = false;
 
   // internal
@@ -14648,7 +14654,7 @@ var Send = function () {
 var Main = function () {
 
   // configurable
-  var _interval = 66;
+  var _interval = 50;
   var _colorBalance = false;
 
   // internal
@@ -15068,6 +15074,7 @@ var Main = function () {
         console.log("main thread impl");
         Send.init_window(canvas);
         Main.setMode('B');
+        Main.setFPS(20);
         Send.nextFrame();
         return;
       }
@@ -15102,6 +15109,7 @@ var Main = function () {
       }
 
       Main.setMode('B');
+      Main.setFPS(20);
       _ww.postMessage({ fun: 'nextFrame', args: [] });
     },
 
@@ -15280,7 +15288,7 @@ var Main = function () {
         Main.setFPS(20);
       } else {
         Main.setMode('B');
-        Main.setFPS(15);
+        Main.setFPS(20);
       }
       Main.updatePresetUI(preset);
     },
@@ -15356,7 +15364,7 @@ var Main = function () {
       // Sync preset state
       if (mode_str === "Bu" && Main._currentFPS == 20) {
         Main.updatePresetUI('robust');
-      } else if (mode_str === "B" && (Main._currentFPS == 15 || !Main._currentFPS)) {
+      } else if (mode_str === "B" && (Main._currentFPS == 20 || !Main._currentFPS)) {
         Main.updatePresetUI('std');
       } else {
         Main.updatePresetUI('custom');
@@ -15389,7 +15397,7 @@ var Main = function () {
       // Sync preset state
       if (Main._currentModeStr === "Bu" && val == 20) {
         Main.updatePresetUI('robust');
-      } else if (Main._currentModeStr === "B" && val == 15) {
+      } else if (Main._currentModeStr === "B" && val == 20) {
         Main.updatePresetUI('std');
       } else {
         Main.updatePresetUI('custom');

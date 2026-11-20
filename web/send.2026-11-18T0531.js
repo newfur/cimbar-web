@@ -5,7 +5,7 @@ var Send = function () {
   var _canvas = undefined; // set by init
 
   // configurable
-  var _interval = 66;
+  var _interval = 50;
   var _colorBalance = false;
 
   // internal

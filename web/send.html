@@ -1450,7 +1450,7 @@
           <div class="preset-cards">
             <div id="preset-std" class="preset-card active" onclick="Main.applyPreset('std')">
               <div class="preset-header">
-                <span class="preset-title" data-i18n="send_preset_std">常规极速 (B · 15 FPS · ~110 KB/s)</span>
+                <span class="preset-title" data-i18n="send_preset_std">常规极速 (B · 20 FPS · ~150 KB/s)</span>
               </div>
             </div>
             <div id="preset-robust" class="preset-card" onclick="Main.applyPreset('robust')">
@@ -1474,9 +1474,9 @@
         <li>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
             <h4 style="margin:0;" data-i18n="send_fps">发送帧率 (FPS)</h4>
-            <span id="fps-val" style="font-size:0.85rem; font-weight:700; color:var(--accent-purple);">15 FPS</span>
+            <span id="fps-val" style="font-size:0.85rem; font-weight:700; color:var(--accent-purple);">20 FPS</span>
           </div>
-          <input id="fps-range" type="range" class="range" min="5" max="20" step="1" value="15" oninput="Main.setFPS(this.value)" onchange="Main.setFPS(this.value)" />
+          <input id="fps-range" type="range" class="range" min="5" max="20" step="1" value="20" oninput="Main.setFPS(this.value)" onchange="Main.setFPS(this.value)" />
         </li>
         <li class="small-link"><a href="javascript:void(0)" onclick="Main.toggleFullscreen()" data-i18n="fullscreen">全屏展示模式</a></li>
         <li class="small" style="margin-top:auto; text-align:center; padding-top:1rem; border-top:1px solid var(--glass-border);">

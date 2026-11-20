@@ -75,7 +75,7 @@ const i18nDict = {
         "send_qr_fs_hint": "Click anywhere or press ESC to exit fullscreen",
 
         "send_preset": "Preset Profile",
-        "send_preset_std": "Max Speed (B · 15 FPS · ~110 KB/s)",
+        "send_preset_std": "Max Speed (B · 20 FPS · ~150 KB/s)",
         "send_preset_robust": "Robust Mode (Bu · 20 FPS)",
         "send_preset_robust_badge": "PC Camera Friendly",
         "send_preset_robust_desc": "Optimized for poor PC webcams: sparse large-cell Bu matrix + 20 FPS high speed for maximum recognition and throughput.",
@@ -176,7 +176,7 @@ const i18nDict = {
         "send_qr_fs_hint": "点击任意位置或按 ESC 退出全屏",
 
         "send_preset": "预设场景",
-        "send_preset_std": "常规极速 (B · 15 FPS · ~110 KB/s)",
+        "send_preset_std": "常规极速 (B · 20 FPS · ~150 KB/s)",
         "send_preset_robust": "强容错模式 (Bu · 20 FPS)",
         "send_preset_robust_badge": "电脑镜头友好",
         "send_preset_robust_desc": "专为低素质电脑摄像头优化：大方块 Bu 稀疏矩阵 + 20 FPS 高速传输，高识别率与传输速度兼备。",

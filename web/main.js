@@ -45,7 +45,7 @@ var Report = function () {
 var Main = function () {
 
   // configurable
-  var _interval = 66;
+  var _interval = 50;
   var _colorBalance = false;
 
   // internal
@@ -465,6 +465,7 @@ var Main = function () {
         console.log("main thread impl");
         Send.init_window(canvas);
         Main.setMode('B');
+        Main.setFPS(20);
         Send.nextFrame();
         return;
       }
@@ -499,6 +500,7 @@ var Main = function () {
       }
 
       Main.setMode('B');
+      Main.setFPS(20);
       _ww.postMessage({ fun: 'nextFrame', args: [] });
     },
 
@@ -677,7 +679,7 @@ var Main = function () {
         Main.setFPS(20);
       } else {
         Main.setMode('B');
-        Main.setFPS(15);
+        Main.setFPS(20);
       }
       Main.updatePresetUI(preset);
     },
@@ -753,7 +755,7 @@ var Main = function () {
       // Sync preset state
       if (mode_str === "Bu" && Main._currentFPS == 20) {
         Main.updatePresetUI('robust');
-      } else if (mode_str === "B" && (Main._currentFPS == 15 || !Main._currentFPS)) {
+      } else if (mode_str === "B" && (Main._currentFPS == 20 || !Main._currentFPS)) {
         Main.updatePresetUI('std');
       } else {
         Main.updatePresetUI('custom');
@@ -786,7 +788,7 @@ var Main = function () {
       // Sync preset state
       if (Main._currentModeStr === "Bu" && val == 20) {
         Main.updatePresetUI('robust');
-      } else if (Main._currentModeStr === "B" && val == 15) {
+      } else if (Main._currentModeStr === "B" && val == 20) {
         Main.updatePresetUI('std');
       } else {
         Main.updatePresetUI('custom');
