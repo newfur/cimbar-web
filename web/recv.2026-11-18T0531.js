@@ -127,6 +127,11 @@ var Recv = function () {
   var _useVideoFrame = true;
   var _supportedFormats = ["NV12", "I420"]; // have cimbard_* return this somehow?
 
+  var _currentZoom = 1.0;
+  var _hasHardwareZoom = false;
+  var _currentExposure = 0; // 0, -1, -2
+  var _hasHardwareExposure = false;
+
   var _mode = 0;
   var _userMode = 0;
   var _qrScanningEnabled = true;
@@ -348,6 +353,10 @@ var Recv = function () {
 
           setTimeout(() => {
             const capabilities = typeof track.getCapabilities === 'function' ? track.getCapabilities() : {};
+            _hasHardwareZoom = Boolean(capabilities.zoom);
+            _hasHardwareExposure = Boolean(capabilities.exposureCompensation);
+            console.log(`Camera capabilities: hardwareZoom=${_hasHardwareZoom}, hardwareExposure=${_hasHardwareExposure}`);
+
             const advancedConstraints = {};
             if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
               advancedConstraints.focusMode = 'continuous';
@@ -358,11 +367,22 @@ var Recv = function () {
             if (capabilities.sharpness && capabilities.sharpness.max) {
               advancedConstraints.sharpness = capabilities.sharpness.max;
             }
+            if (_hasHardwareZoom && _currentZoom > 1.0 && capabilities.zoom) {
+              advancedConstraints.zoom = Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min, _currentZoom));
+            }
+            if (_hasHardwareExposure && _currentExposure !== 0 && capabilities.exposureCompensation) {
+              advancedConstraints.exposureCompensation = Math.max(
+                capabilities.exposureCompensation.min,
+                Math.min(capabilities.exposureCompensation.max, _currentExposure)
+              );
+            }
             if (Object.keys(advancedConstraints).length > 0) {
               track.applyConstraints({ advanced: [advancedConstraints] })
                 .then(() => console.log("Applied continuous camera constraints:", advancedConstraints))
                 .catch(err => console.warn("Failed to apply continuous constraints:", err));
             }
+
+            Recv.update_hud_ui();
           }, 500);
 
           // Manual Tap-to-Focus with visual feedback ring
@@ -522,7 +542,22 @@ var Recv = function () {
     on_frame_vf: async function (now) {
       let vf = undefined;
       try {
-        vf = new VideoFrame(_video, { timestamp: now });
+        let vfOptions = { timestamp: now };
+        // If no hardware zoom and software zoom > 1.0, crop center region via visibleRect
+        if (!_hasHardwareZoom && _currentZoom > 1.0 && _video.videoWidth > 0) {
+          const vw = _video.videoWidth;
+          const vh = _video.videoHeight;
+          const cropW = Math.round(vw / _currentZoom);
+          const cropH = Math.round(vh / _currentZoom);
+          const cropX = Math.round((vw - cropW) / 2);
+          const cropY = Math.round((vh - cropH) / 2);
+          vfOptions.visibleRect = { x: cropX, y: cropY, width: cropW, height: cropH };
+        }
+        try {
+          vf = new VideoFrame(_video, vfOptions);
+        } catch (_) {
+          vf = new VideoFrame(_video, { timestamp: now });
+        }
       } catch (e) {
         console.log("no VideoFrame support, falling back to ImageBitmap");
         return undefined;
@@ -556,7 +591,9 @@ var Recv = function () {
           pixels: buff,
           format: format,
           width: width,
-          height: height
+          height: height,
+          exposure: _currentExposure,
+          softwareExposure: !_hasHardwareExposure
         };
       } catch (e) {
         console.error("on_frame_vf error:", e);
@@ -601,16 +638,28 @@ var Recv = function () {
 
       if (!_useVideoFrame && _video && _video.videoWidth > 0 && _video.videoHeight > 0) {
         try {
-          const width = _video.videoWidth;
-          const height = _video.videoHeight;
-          bitmap = await createImageBitmap(_video);
+          let width = _video.videoWidth;
+          let height = _video.videoHeight;
+          if (!_hasHardwareZoom && _currentZoom > 1.0) {
+            const cropW = Math.round(width / _currentZoom);
+            const cropH = Math.round(height / _currentZoom);
+            const cropX = Math.round((width - cropW) / 2);
+            const cropY = Math.round((height - cropH) / 2);
+            bitmap = await createImageBitmap(_video, cropX, cropY, cropW, cropH);
+            width = cropW;
+            height = cropH;
+          } else {
+            bitmap = await createImageBitmap(_video);
+          }
           workerMsg = {
             type: 'proc',
             bitmap: bitmap,
             format: "RGBA",
             width: width,
             height: height,
-            mode: mode
+            mode: mode,
+            exposure: _currentExposure,
+            softwareExposure: !_hasHardwareExposure
           };
         } catch (e) {
           console.warn("createImageBitmap fallback error:", e);
@@ -1038,6 +1087,71 @@ var Recv = function () {
       Recv.stop_video();
       Recv.init_video(_video);
       Recv.blurNav();
+    },
+
+    setZoom: function (level) {
+      _currentZoom = parseFloat(level) || 1.0;
+      Recv.update_hud_ui();
+
+      const track = (_video && _video.srcObject) ? _video.srcObject.getVideoTracks()[0] : null;
+      if (track && _hasHardwareZoom) {
+        const capabilities = typeof track.getCapabilities === 'function' ? track.getCapabilities() : {};
+        if (capabilities.zoom) {
+          const target = Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min, _currentZoom));
+          track.applyConstraints({ advanced: [{ zoom: target }] })
+            .catch(e => console.warn("apply zoom failed:", e));
+        }
+      }
+
+      if (_video) {
+        _video.style.transform = (!_hasHardwareZoom && _currentZoom > 1.0) ? `scale(${_currentZoom})` : 'none';
+      }
+    },
+
+    setExposure: function (ev) {
+      _currentExposure = parseInt(ev, 10) || 0;
+      Recv.update_hud_ui();
+
+      const track = (_video && _video.srcObject) ? _video.srcObject.getVideoTracks()[0] : null;
+      if (track && _hasHardwareExposure) {
+        const capabilities = typeof track.getCapabilities === 'function' ? track.getCapabilities() : {};
+        if (capabilities.exposureCompensation) {
+          const minExp = capabilities.exposureCompensation.min;
+          const maxExp = capabilities.exposureCompensation.max;
+          const target = Math.max(minExp, Math.min(maxExp, _currentExposure));
+          track.applyConstraints({ advanced: [{ exposureCompensation: target }] })
+            .catch(e => console.warn("apply exposureCompensation failed:", e));
+        }
+      }
+
+      if (_video) {
+        if (_currentExposure === -1) {
+          _video.style.filter = "brightness(0.8) contrast(1.15)";
+        } else if (_currentExposure === -2) {
+          _video.style.filter = "brightness(0.65) contrast(1.3)";
+        } else {
+          _video.style.filter = "none";
+        }
+      }
+    },
+
+    update_hud_ui: function () {
+      document.querySelectorAll('[data-zoom]').forEach(el => {
+        const z = parseFloat(el.getAttribute('data-zoom'));
+        if (Math.abs(z - _currentZoom) < 0.05) {
+          el.classList.add('active');
+        } else {
+          el.classList.remove('active');
+        }
+      });
+      document.querySelectorAll('[data-exp]').forEach(el => {
+        const exp = parseInt(el.getAttribute('data-exp'), 10);
+        if (exp === _currentExposure) {
+          el.classList.add('active');
+        } else {
+          el.classList.remove('active');
+        }
+      });
     },
 
     set_HTML: function (id, msg, only_if_unset) {

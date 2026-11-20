@@ -847,6 +847,61 @@
       border-color: rgba(124, 58, 237, 0.2);
     }
 
+    /* Preset Profile Cards */
+    .preset-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 0.8rem;
+    }
+    .preset-card {
+      padding: 0.65rem 0.85rem;
+      border-radius: 12px;
+      border: 1px solid var(--glass-border);
+      background: rgba(124, 58, 237, 0.03);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+    .preset-card:hover {
+      background: rgba(124, 58, 237, 0.07);
+      transform: translateY(-1px);
+    }
+    .preset-card.active {
+      border-color: var(--accent-purple);
+      background: rgba(124, 58, 237, 0.09);
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.1);
+    }
+    .preset-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.4rem;
+    }
+    .preset-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .preset-card.active .preset-title {
+      color: var(--accent-purple);
+    }
+    .preset-badge {
+      font-size: 0.7rem;
+      padding: 2px 7px;
+      border-radius: 8px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #059669;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .preset-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+      line-height: 1.4;
+    }
+
     /* Drawer Styles */
     #nav-container {
       position: fixed;
@@ -1391,6 +1446,23 @@
         </li>
         <hr>
         <li class="modesel">
+          <h4 data-i18n="send_preset">场景预设</h4>
+          <div class="preset-cards">
+            <div id="preset-std" class="preset-card active" onclick="Main.applyPreset('std')">
+              <div class="preset-header">
+                <span class="preset-title" data-i18n="send_preset_std">常规高速 (Bm · 15 FPS)</span>
+              </div>
+            </div>
+            <div id="preset-robust" class="preset-card" onclick="Main.applyPreset('robust')">
+              <div class="preset-header">
+                <span class="preset-title" data-i18n="send_preset_robust">强容错模式 (4C · 8 FPS)</span>
+                <span class="preset-badge" data-i18n="send_preset_robust_badge">电脑镜头友好</span>
+              </div>
+              <div class="preset-desc" data-i18n="send_preset_robust_desc">专为低素质电脑摄像头优化：大色块 4C + 8 FPS 低帧率，大幅降低手机屏幕自发光、虚焦与拖影干扰。</div>
+            </div>
+          </div>
+        </li>
+        <li class="modesel">
           <h4 data-i18n="send_mode">编码模式</h4>
           <div class="modes-grid">
             <a class="mode-b" href="javascript:void(0)" onclick="Main.setMode('B')">B</a>
@@ -1400,8 +1472,11 @@
           </div>
         </li>
         <li>
-          <h4 data-i18n="send_fps">发送帧率 (FPS)</h4>
-          <input type="range" class="range" min="5" max="20" step="5" value="15" oninput="Main.setFPS(this.value)" onchange="Main.setFPS(this.value)" />
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+            <h4 style="margin:0;" data-i18n="send_fps">发送帧率 (FPS)</h4>
+            <span id="fps-val" style="font-size:0.85rem; font-weight:700; color:var(--accent-purple);">15 FPS</span>
+          </div>
+          <input id="fps-range" type="range" class="range" min="5" max="20" step="1" value="15" oninput="Main.setFPS(this.value)" onchange="Main.setFPS(this.value)" />
         </li>
         <li class="small-link"><a href="javascript:void(0)" onclick="Main.toggleFullscreen()" data-i18n="fullscreen">全屏展示模式</a></li>
         <li class="small" style="margin-top:auto; text-align:center; padding-top:1rem; border-top:1px solid var(--glass-border);">

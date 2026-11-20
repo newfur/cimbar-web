@@ -28,6 +28,10 @@ var RecvWorker = function () {
         Module._cimbard_configure_decode(mode);
       }
 
+      if (data.softwareExposure && data.exposure < 0) {
+        RecvWorker.apply_exposure(pixels, format, width, height, data.exposure);
+      }
+
       try {
         // malloc iff necessary
         RecvWorker.mallocAll(pixels.length);
@@ -89,6 +93,26 @@ var RecvWorker = function () {
         return data;
       } finally {
         bitmap.close();
+      }
+    },
+
+    apply_exposure: function (pixels, format, width, height, exp) {
+      if (!pixels || exp >= 0) return;
+      const factor = (exp === -1) ? 0.82 : 0.65;
+      
+      if (format === "NV12" || format === "I420") {
+        // Y plane (luma) is the first width * height bytes
+        const lumaLen = width * height;
+        for (let i = 0; i < lumaLen; i++) {
+          pixels[i] = Math.min(255, Math.floor(pixels[i] * factor));
+        }
+      } else if (format === "RGBA") {
+        const len = width * height * 4;
+        for (let i = 0; i < len; i += 4) {
+          pixels[i] = Math.min(255, Math.floor(pixels[i] * factor));
+          pixels[i + 1] = Math.min(255, Math.floor(pixels[i + 1] * factor));
+          pixels[i + 2] = Math.min(255, Math.floor(pixels[i + 2] * factor));
+        }
       }
     },
 

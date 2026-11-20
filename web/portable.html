@@ -1592,6 +1592,61 @@
       border-color: rgba(124, 58, 237, 0.2);
     }
 
+    /* Preset Profile Cards */
+    .preset-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 0.8rem;
+    }
+    .preset-card {
+      padding: 0.65rem 0.85rem;
+      border-radius: 12px;
+      border: 1px solid var(--glass-border);
+      background: rgba(124, 58, 237, 0.03);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+    .preset-card:hover {
+      background: rgba(124, 58, 237, 0.07);
+      transform: translateY(-1px);
+    }
+    .preset-card.active {
+      border-color: var(--accent-purple);
+      background: rgba(124, 58, 237, 0.09);
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.1);
+    }
+    .preset-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.4rem;
+    }
+    .preset-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .preset-card.active .preset-title {
+      color: var(--accent-purple);
+    }
+    .preset-badge {
+      font-size: 0.7rem;
+      padding: 2px 7px;
+      border-radius: 8px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #059669;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .preset-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+      line-height: 1.4;
+    }
+
     /* Drawer Styles */
     #send-nav-container {
       position: fixed;
@@ -2577,6 +2632,100 @@
       transform: translateY(-1px);
     }
 
+    /* Floating Camera Enhancement HUD */
+    .recv-hud {
+      position: fixed;
+      bottom: max(20px, env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.4rem 0.85rem;
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 8px 30px rgba(124, 58, 237, 0.12);
+      z-index: 20;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      max-width: calc(100vw - 30px);
+      overflow-x: auto;
+    }
+    .hud-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--glass-border);
+    }
+    .hud-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      white-space: nowrap;
+    }
+    .hud-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+      user-select: none;
+    }
+    .hud-capsules {
+      display: inline-flex;
+      background: rgba(124, 58, 237, 0.05);
+      padding: 2px;
+      border-radius: 20px;
+      gap: 2px;
+    }
+    .hud-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 0.25rem 0.6rem;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      outline: none;
+      line-height: 1.2;
+      user-select: none;
+    }
+    .hud-btn:hover {
+      color: var(--text-main);
+    }
+    .hud-btn.active {
+      background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+      color: #fff !important;
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+    }
+    #drawer-zoom-grid, #drawer-exp-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.4rem;
+    }
+    #drawer-exp-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    #drawer-zoom-grid a, #drawer-exp-grid a {
+      color: rgba(35, 33, 84, 0.5);
+      padding: 0.4rem 0.5rem;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: rgba(124, 58, 237, 0.03);
+      text-decoration: none;
+      font-size: 0.82rem;
+      text-align: center;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    #drawer-zoom-grid a.active, #drawer-exp-grid a.active {
+      color: var(--accent-purple) !important;
+      background: rgba(124, 58, 237, 0.1);
+      border-color: rgba(124, 58, 237, 0.25);
+    }
+
     .btn-action-cancel {
       padding: 0.6rem;
       border-radius: 12px;
@@ -2960,6 +3109,23 @@
         </li>
         <hr>
         <li class="modesel">
+          <h4 data-i18n="send_preset">场景预设</h4>
+          <div class="preset-cards">
+            <div id="preset-std" class="preset-card active" onclick="Main.applyPreset('std')">
+              <div class="preset-header">
+                <span class="preset-title" data-i18n="send_preset_std">常规高速 (Bm · 15 FPS)</span>
+              </div>
+            </div>
+            <div id="preset-robust" class="preset-card" onclick="Main.applyPreset('robust')">
+              <div class="preset-header">
+                <span class="preset-title" data-i18n="send_preset_robust">强容错模式 (4C · 8 FPS)</span>
+                <span class="preset-badge" data-i18n="send_preset_robust_badge">电脑镜头友好</span>
+              </div>
+              <div class="preset-desc" data-i18n="send_preset_robust_desc">专为低素质电脑摄像头优化：大色块 4C + 8 FPS 低帧率，大幅降低手机屏幕自发光、虚焦与拖影干扰。</div>
+            </div>
+          </div>
+        </li>
+        <li class="modesel">
           <h4 data-i18n="send_mode">编码模式</h4>
           <div class="modes-grid">
             <a class="mode-b" href="javascript:void(0)" onclick="Main.setMode('B')">B</a>
@@ -2969,8 +3135,11 @@
           </div>
         </li>
         <li>
-          <h4 data-i18n="send_fps">发送帧率 (FPS)</h4>
-          <input type="range" class="range" min="5" max="20" step="5" value="15" oninput="Main.setFPS(this.value)" onchange="Main.setFPS(this.value)" />
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+            <h4 style="margin:0;" data-i18n="send_fps">发送帧率 (FPS)</h4>
+            <span id="fps-val" style="font-size:0.85rem; font-weight:700; color:var(--accent-purple);">15 FPS</span>
+          </div>
+          <input id="fps-range" type="range" class="range" min="5" max="20" step="1" value="15" oninput="Main.setFPS(this.value)" onchange="Main.setFPS(this.value)" />
         </li>
         <li class="small-link"><a href="javascript:void(0)" onclick="Main.toggleFullscreen()" data-i18n="fullscreen">全屏展示模式</a></li>
         <li class="small" style="margin-top:auto; text-align:center; padding-top:1rem; border-top:1px solid var(--glass-border);">
@@ -3012,6 +3181,30 @@
     <div id="crosshair2" class="crosshairs"></div>
   </div>
 
+  <!-- Floating Camera Enhancement Controls (Zoom & Anti-Glare HUD) -->
+  <div id="recv-hud" class="recv-hud">
+    <!-- Zoom Selector -->
+    <div class="hud-group">
+      <span class="hud-label" data-i18n="recv_zoom">变焦</span>
+      <div class="hud-capsules" id="hud-zoom-capsules">
+        <button type="button" class="hud-btn active" data-zoom="1" onclick="Recv.setZoom(1)">1x</button>
+        <button type="button" class="hud-btn" data-zoom="1.5" onclick="Recv.setZoom(1.5)">1.5x</button>
+        <button type="button" class="hud-btn" data-zoom="2" onclick="Recv.setZoom(2)">2x</button>
+        <button type="button" class="hud-btn" data-zoom="2.5" onclick="Recv.setZoom(2.5)">2.5x</button>
+      </div>
+    </div>
+    <div class="hud-divider"></div>
+    <!-- Anti-Glare / Exposure Selector -->
+    <div class="hud-group">
+      <span class="hud-label" data-i18n="recv_exposure">防过曝</span>
+      <div class="hud-capsules" id="hud-exp-capsules">
+        <button type="button" class="hud-btn active" data-exp="0" onclick="Recv.setExposure(0)" data-i18n="recv_exposure_normal">标准 0.0</button>
+        <button type="button" class="hud-btn" data-exp="-1" onclick="Recv.setExposure(-1)" data-i18n="recv_exposure_dim">微降 -1.0</button>
+        <button type="button" class="hud-btn" data-exp="-2" onclick="Recv.setExposure(-2)" data-i18n="recv_exposure_dark">强力 -2.0</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Back to portal -->
   <a href="javascript:void(0)" onclick="showView('hub')" class="btn-home">
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -3033,6 +3226,28 @@
     <div id="recv-nav-content" tabindex="-1">
       <ul>
         <li id="recv-cam-switch-item" class="hidden"><a href="javascript:void(0)" onclick="Recv.switchCamera()" data-i18n="recv_switch_camera">切换摄像头</a></li>
+        <hr>
+        <li class="modesel">
+          <h4 data-i18n="recv_cam_controls">镜头与画质增强</h4>
+          <div style="margin-bottom:0.6rem;">
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.35rem;" data-i18n="recv_zoom">变焦放大</div>
+            <div id="drawer-zoom-grid">
+              <a href="javascript:void(0)" class="active" data-zoom="1" onclick="Recv.setZoom(1)">1x</a>
+              <a href="javascript:void(0)" data-zoom="1.5" onclick="Recv.setZoom(1.5)">1.5x</a>
+              <a href="javascript:void(0)" data-zoom="2" onclick="Recv.setZoom(2)">2x</a>
+              <a href="javascript:void(0)" data-zoom="2.5" onclick="Recv.setZoom(2.5)">2.5x</a>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.35rem;" data-i18n="recv_exposure">防过曝压光</div>
+            <div id="drawer-exp-grid">
+              <a href="javascript:void(0)" class="active" data-exp="0" onclick="Recv.setExposure(0)" data-i18n="recv_exposure_normal">标准</a>
+              <a href="javascript:void(0)" data-exp="-1" onclick="Recv.setExposure(-1)" data-i18n="recv_exposure_dim">微降</a>
+              <a href="javascript:void(0)" data-exp="-2" onclick="Recv.setExposure(-2)" data-i18n="recv_exposure_dark">强力</a>
+            </div>
+          </div>
+        </li>
+        <hr>
         <li><a href="javascript:void(0)" onclick="Recv.toggleDebugPanel()" data-i18n="recv_toggle_debug">切换调试面板</a></li>
         <li><a href="javascript:void(0)" onclick="Recv.toggleFullscreen()" data-i18n="fullscreen">全屏接收模式</a></li>
         <li class="small" style="margin-top:auto; text-align:center; padding-top:1rem; border-top:1px solid var(--glass-border);">
@@ -13544,6 +13759,10 @@ var RecvWorker = function () {
         Module._cimbard_configure_decode(mode);
       }
 
+      if (data.softwareExposure && data.exposure < 0) {
+        RecvWorker.apply_exposure(pixels, format, width, height, data.exposure);
+      }
+
       try {
         // malloc iff necessary
         RecvWorker.mallocAll(pixels.length);
@@ -13605,6 +13824,26 @@ var RecvWorker = function () {
         return data;
       } finally {
         bitmap.close();
+      }
+    },
+
+    apply_exposure: function (pixels, format, width, height, exp) {
+      if (!pixels || exp >= 0) return;
+      const factor = (exp === -1) ? 0.82 : 0.65;
+      
+      if (format === "NV12" || format === "I420") {
+        // Y plane (luma) is the first width * height bytes
+        const lumaLen = width * height;
+        for (let i = 0; i < lumaLen; i++) {
+          pixels[i] = Math.min(255, Math.floor(pixels[i] * factor));
+        }
+      } else if (format === "RGBA") {
+        const len = width * height * 4;
+        for (let i = 0; i < len; i += 4) {
+          pixels[i] = Math.min(255, Math.floor(pixels[i] * factor));
+          pixels[i + 1] = Math.min(255, Math.floor(pixels[i + 1] * factor));
+          pixels[i + 2] = Math.min(255, Math.floor(pixels[i + 2] * factor));
+        }
       }
     },
 
@@ -13835,7 +14074,17 @@ const i18nDict = {
         "send_qr_copied_img": "Image Copied!",
         "send_qr_fs_hint": "Click anywhere or press ESC to exit fullscreen",
 
-        // Recv Page (recv.html)
+        "send_preset": "Preset Profile",
+        "send_preset_std": "Standard (Bm · 15 FPS)",
+        "send_preset_robust": "Robust Mode (4C · 8 FPS)",
+        "send_preset_robust_badge": "PC Camera Friendly",
+        "send_preset_robust_desc": "Optimized for poor PC webcams: large 4C blocks + 8 FPS to eliminate glare, defocus, and motion blur.",
+        "recv_cam_controls": "Camera Enhancement",
+        "recv_zoom": "Zoom",
+        "recv_exposure": "Anti-Glare / Exposure",
+        "recv_exposure_normal": "Normal",
+        "recv_exposure_dim": "Dim -1.0",
+        "recv_exposure_dark": "Anti-Glare -2.0",
         "recv_switch_camera": "Switch Camera",
         "recv_toggle_debug": "Toggle Debug Panel",
         "recv_status_no_error": "No error",
@@ -13923,7 +14172,17 @@ const i18nDict = {
         "send_qr_copied_img": "图片已复制！",
         "send_qr_fs_hint": "点击任意位置或按 ESC 退出全屏",
 
-        // Recv Page (recv.html)
+        "send_preset": "预设场景",
+        "send_preset_std": "常规高速 (Bm · 15 FPS)",
+        "send_preset_robust": "强容错模式 (4C · 8 FPS)",
+        "send_preset_robust_badge": "电脑镜头友好",
+        "send_preset_robust_desc": "专为低素质电脑摄像头优化：大色块 4C + 8 FPS 低帧率，大幅降低手机屏幕自发光、虚焦与拖影干扰。",
+        "recv_cam_controls": "镜头与画质增强",
+        "recv_zoom": "变焦放大",
+        "recv_exposure": "防过曝压光",
+        "recv_exposure_normal": "标准 0.0",
+        "recv_exposure_dim": "轻微压光 -1.0",
+        "recv_exposure_dark": "强力防过曝 -2.0",
         "recv_switch_camera": "切换摄像头",
         "recv_toggle_debug": "切换调试面板",
         "recv_status_no_error": "暂无错误",
@@ -14264,8 +14523,12 @@ var Send = function () {
 
     setMode: function (mode_val) {
       // call resize after this from Main?
-      Module._cimbare_configure(mode_val, -1);
-      Report.setAspectRatio(Module._cimbare_get_aspect_ratio());
+      if (typeof Module !== 'undefined' && typeof Module._cimbare_configure === 'function') {
+        Module._cimbare_configure(mode_val, -1);
+        if (typeof Module._cimbare_get_aspect_ratio === 'function') {
+          Report.setAspectRatio(Module._cimbare_get_aspect_ratio());
+        }
+      }
     },
 
     setFPS: function (val) {
@@ -14965,7 +15228,36 @@ var Main = function () {
       }
     },
 
+    applyPreset: function (preset) {
+      if (preset === 'robust') {
+        Main.setMode('4C');
+        Main.setFPS(8);
+      } else {
+        Main.setMode('Bm');
+        Main.setFPS(15);
+      }
+      Main.updatePresetUI(preset);
+    },
+
+    updatePresetUI: function (preset) {
+      var stdEl = document.getElementById("preset-std") || document.getElementById("send-preset-std");
+      var robustEl = document.getElementById("preset-robust") || document.getElementById("send-preset-robust");
+      if (stdEl && robustEl) {
+        if (preset === 'robust') {
+          stdEl.classList.remove("active");
+          robustEl.classList.add("active");
+        } else if (preset === 'std') {
+          stdEl.classList.add("active");
+          robustEl.classList.remove("active");
+        } else {
+          stdEl.classList.remove("active");
+          robustEl.classList.remove("active");
+        }
+      }
+    },
+
     setMode: function (mode_str) {
+      Main._currentModeStr = mode_str;
       let modeVal = 68;
       if (mode_str == "4C") {
         modeVal = 4;
@@ -14985,33 +15277,43 @@ var Main = function () {
         Send.setMode(modeVal);
       }
 
-      var nav = document.getElementById("send-nav-container");
-      if (modeVal == 4) {
-        nav.classList.remove("mode-b");
-        nav.classList.add("mode-4c");
-        nav.classList.remove("mode-b");
-        nav.classList.remove("mode-bm");
-        nav.classList.remove("mode-bu");
-      } else if (modeVal == 66) {
-        nav.classList.add("mode-bu");
-        nav.classList.remove("mode-b");
-        nav.classList.remove("mode-bm");
-        nav.classList.remove("mode-4c");
-      } else if (modeVal == 67) {
-        nav.classList.add("mode-bm");
-        nav.classList.remove("mode-b");
-        nav.classList.remove("mode-bu");
-        nav.classList.remove("mode-4c");
-      } else if (modeVal == 68) {
-        nav.classList.add("mode-b");
-        nav.classList.remove("mode-bm");
-        nav.classList.remove("mode-bu");
-        nav.classList.remove("mode-4c");
+      var nav = document.getElementById("send-nav-container") || document.getElementById("send-nav-container");
+      if (nav) {
+        if (modeVal == 4) {
+          nav.classList.remove("mode-b");
+          nav.classList.add("mode-4c");
+          nav.classList.remove("mode-bm");
+          nav.classList.remove("mode-bu");
+        } else if (modeVal == 66) {
+          nav.classList.add("mode-bu");
+          nav.classList.remove("mode-b");
+          nav.classList.remove("mode-bm");
+          nav.classList.remove("mode-4c");
+        } else if (modeVal == 67) {
+          nav.classList.add("mode-bm");
+          nav.classList.remove("mode-b");
+          nav.classList.remove("mode-bu");
+          nav.classList.remove("mode-4c");
+        } else if (modeVal == 68) {
+          nav.classList.add("mode-b");
+          nav.classList.remove("mode-bm");
+          nav.classList.remove("mode-bu");
+          nav.classList.remove("mode-4c");
+        } else {
+          nav.classList.remove("mode-b");
+          nav.classList.remove("mode-bm");
+          nav.classList.remove("mode-bu");
+          nav.classList.remove("mode-4c");
+        }
+      }
+
+      // Sync preset state
+      if (mode_str === "4C" && Main._currentFPS == 8) {
+        Main.updatePresetUI('robust');
+      } else if (mode_str === "Bm" && (Main._currentFPS == 15 || !Main._currentFPS)) {
+        Main.updatePresetUI('std');
       } else {
-        nav.classList.remove("mode-b");
-        nav.classList.remove("mode-bm");
-        nav.classList.remove("mode-bu");
-        nav.classList.remove("mode-4c");
+        Main.updatePresetUI('custom');
       }
     },
 
@@ -15019,11 +15321,32 @@ var Main = function () {
       if (!val) {
         return;
       }
+      val = parseInt(val, 10);
+      Main._currentFPS = val;
+
+      var fpsValEl = document.getElementById("fps-val") || document.getElementById("send-fps-val");
+      if (fpsValEl) {
+        fpsValEl.innerHTML = val + " FPS";
+      }
+      var fpsRangeEl = document.getElementById("fps-range") || document.getElementById("send-fps-range");
+      if (fpsRangeEl && fpsRangeEl.value != val) {
+        fpsRangeEl.value = val;
+      }
+
       if (_ww) {
         _ww.postMessage({ fun: 'setFPS', args: [val] });
       }
       else {
         Send.setFPS(val);
+      }
+
+      // Sync preset state
+      if (Main._currentModeStr === "4C" && val == 8) {
+        Main.updatePresetUI('robust');
+      } else if (Main._currentModeStr === "Bm" && val == 15) {
+        Main.updatePresetUI('std');
+      } else {
+        Main.updatePresetUI('custom');
       }
     },
 
@@ -15332,6 +15655,11 @@ var Recv = function () {
   var _useVideoFrame = true;
   var _supportedFormats = ["NV12", "I420"]; // have cimbard_* return this somehow?
 
+  var _currentZoom = 1.0;
+  var _hasHardwareZoom = false;
+  var _currentExposure = 0; // 0, -1, -2
+  var _hasHardwareExposure = false;
+
   var _mode = 0;
   var _userMode = 0;
   var _qrScanningEnabled = true;
@@ -15559,6 +15887,10 @@ var Recv = function () {
 
           setTimeout(() => {
             const capabilities = typeof track.getCapabilities === 'function' ? track.getCapabilities() : {};
+            _hasHardwareZoom = Boolean(capabilities.zoom);
+            _hasHardwareExposure = Boolean(capabilities.exposureCompensation);
+            console.log(`Camera capabilities: hardwareZoom=${_hasHardwareZoom}, hardwareExposure=${_hasHardwareExposure}`);
+
             const advancedConstraints = {};
             if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
               advancedConstraints.focusMode = 'continuous';
@@ -15569,11 +15901,22 @@ var Recv = function () {
             if (capabilities.sharpness && capabilities.sharpness.max) {
               advancedConstraints.sharpness = capabilities.sharpness.max;
             }
+            if (_hasHardwareZoom && _currentZoom > 1.0 && capabilities.zoom) {
+              advancedConstraints.zoom = Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min, _currentZoom));
+            }
+            if (_hasHardwareExposure && _currentExposure !== 0 && capabilities.exposureCompensation) {
+              advancedConstraints.exposureCompensation = Math.max(
+                capabilities.exposureCompensation.min,
+                Math.min(capabilities.exposureCompensation.max, _currentExposure)
+              );
+            }
             if (Object.keys(advancedConstraints).length > 0) {
               track.applyConstraints({ advanced: [advancedConstraints] })
                 .then(() => console.log("Applied continuous camera constraints:", advancedConstraints))
                 .catch(err => console.warn("Failed to apply continuous constraints:", err));
             }
+
+            Recv.update_hud_ui();
           }, 500);
 
           // Manual Tap-to-Focus with visual feedback ring
@@ -15733,7 +16076,22 @@ var Recv = function () {
     on_frame_vf: async function (now) {
       let vf = undefined;
       try {
-        vf = new VideoFrame(_video, { timestamp: now });
+        let vfOptions = { timestamp: now };
+        // If no hardware zoom and software zoom > 1.0, crop center region via visibleRect
+        if (!_hasHardwareZoom && _currentZoom > 1.0 && _video.videoWidth > 0) {
+          const vw = _video.videoWidth;
+          const vh = _video.videoHeight;
+          const cropW = Math.round(vw / _currentZoom);
+          const cropH = Math.round(vh / _currentZoom);
+          const cropX = Math.round((vw - cropW) / 2);
+          const cropY = Math.round((vh - cropH) / 2);
+          vfOptions.visibleRect = { x: cropX, y: cropY, width: cropW, height: cropH };
+        }
+        try {
+          vf = new VideoFrame(_video, vfOptions);
+        } catch (_) {
+          vf = new VideoFrame(_video, { timestamp: now });
+        }
       } catch (e) {
         console.log("no VideoFrame support, falling back to ImageBitmap");
         return undefined;
@@ -15767,7 +16125,9 @@ var Recv = function () {
           pixels: buff,
           format: format,
           width: width,
-          height: height
+          height: height,
+          exposure: _currentExposure,
+          softwareExposure: !_hasHardwareExposure
         };
       } catch (e) {
         console.error("on_frame_vf error:", e);
@@ -15812,16 +16172,28 @@ var Recv = function () {
 
       if (!_useVideoFrame && _video && _video.videoWidth > 0 && _video.videoHeight > 0) {
         try {
-          const width = _video.videoWidth;
-          const height = _video.videoHeight;
-          bitmap = await createImageBitmap(_video);
+          let width = _video.videoWidth;
+          let height = _video.videoHeight;
+          if (!_hasHardwareZoom && _currentZoom > 1.0) {
+            const cropW = Math.round(width / _currentZoom);
+            const cropH = Math.round(height / _currentZoom);
+            const cropX = Math.round((width - cropW) / 2);
+            const cropY = Math.round((height - cropH) / 2);
+            bitmap = await createImageBitmap(_video, cropX, cropY, cropW, cropH);
+            width = cropW;
+            height = cropH;
+          } else {
+            bitmap = await createImageBitmap(_video);
+          }
           workerMsg = {
             type: 'proc',
             bitmap: bitmap,
             format: "RGBA",
             width: width,
             height: height,
-            mode: mode
+            mode: mode,
+            exposure: _currentExposure,
+            softwareExposure: !_hasHardwareExposure
           };
         } catch (e) {
           console.warn("createImageBitmap fallback error:", e);
@@ -16249,6 +16621,71 @@ var Recv = function () {
       Recv.stop_video();
       Recv.init_video(_video);
       Recv.blurNav();
+    },
+
+    setZoom: function (level) {
+      _currentZoom = parseFloat(level) || 1.0;
+      Recv.update_hud_ui();
+
+      const track = (_video && _video.srcObject) ? _video.srcObject.getVideoTracks()[0] : null;
+      if (track && _hasHardwareZoom) {
+        const capabilities = typeof track.getCapabilities === 'function' ? track.getCapabilities() : {};
+        if (capabilities.zoom) {
+          const target = Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min, _currentZoom));
+          track.applyConstraints({ advanced: [{ zoom: target }] })
+            .catch(e => console.warn("apply zoom failed:", e));
+        }
+      }
+
+      if (_video) {
+        _video.style.transform = (!_hasHardwareZoom && _currentZoom > 1.0) ? `scale(${_currentZoom})` : 'none';
+      }
+    },
+
+    setExposure: function (ev) {
+      _currentExposure = parseInt(ev, 10) || 0;
+      Recv.update_hud_ui();
+
+      const track = (_video && _video.srcObject) ? _video.srcObject.getVideoTracks()[0] : null;
+      if (track && _hasHardwareExposure) {
+        const capabilities = typeof track.getCapabilities === 'function' ? track.getCapabilities() : {};
+        if (capabilities.exposureCompensation) {
+          const minExp = capabilities.exposureCompensation.min;
+          const maxExp = capabilities.exposureCompensation.max;
+          const target = Math.max(minExp, Math.min(maxExp, _currentExposure));
+          track.applyConstraints({ advanced: [{ exposureCompensation: target }] })
+            .catch(e => console.warn("apply exposureCompensation failed:", e));
+        }
+      }
+
+      if (_video) {
+        if (_currentExposure === -1) {
+          _video.style.filter = "brightness(0.8) contrast(1.15)";
+        } else if (_currentExposure === -2) {
+          _video.style.filter = "brightness(0.65) contrast(1.3)";
+        } else {
+          _video.style.filter = "none";
+        }
+      }
+    },
+
+    update_hud_ui: function () {
+      document.querySelectorAll('[data-zoom]').forEach(el => {
+        const z = parseFloat(el.getAttribute('data-zoom'));
+        if (Math.abs(z - _currentZoom) < 0.05) {
+          el.classList.add('active');
+        } else {
+          el.classList.remove('active');
+        }
+      });
+      document.querySelectorAll('[data-exp]').forEach(el => {
+        const exp = parseInt(el.getAttribute('data-exp'), 10);
+        if (exp === _currentExposure) {
+          el.classList.add('active');
+        } else {
+          el.classList.remove('active');
+        }
+      });
     },
 
     set_HTML: function (id, msg, only_if_unset) {

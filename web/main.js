@@ -671,7 +671,36 @@ var Main = function () {
       }
     },
 
+    applyPreset: function (preset) {
+      if (preset === 'robust') {
+        Main.setMode('4C');
+        Main.setFPS(8);
+      } else {
+        Main.setMode('Bm');
+        Main.setFPS(15);
+      }
+      Main.updatePresetUI(preset);
+    },
+
+    updatePresetUI: function (preset) {
+      var stdEl = document.getElementById("preset-std") || document.getElementById("send-preset-std");
+      var robustEl = document.getElementById("preset-robust") || document.getElementById("send-preset-robust");
+      if (stdEl && robustEl) {
+        if (preset === 'robust') {
+          stdEl.classList.remove("active");
+          robustEl.classList.add("active");
+        } else if (preset === 'std') {
+          stdEl.classList.add("active");
+          robustEl.classList.remove("active");
+        } else {
+          stdEl.classList.remove("active");
+          robustEl.classList.remove("active");
+        }
+      }
+    },
+
     setMode: function (mode_str) {
+      Main._currentModeStr = mode_str;
       let modeVal = 68;
       if (mode_str == "4C") {
         modeVal = 4;
@@ -691,33 +720,43 @@ var Main = function () {
         Send.setMode(modeVal);
       }
 
-      var nav = document.getElementById("nav-container");
-      if (modeVal == 4) {
-        nav.classList.remove("mode-b");
-        nav.classList.add("mode-4c");
-        nav.classList.remove("mode-b");
-        nav.classList.remove("mode-bm");
-        nav.classList.remove("mode-bu");
-      } else if (modeVal == 66) {
-        nav.classList.add("mode-bu");
-        nav.classList.remove("mode-b");
-        nav.classList.remove("mode-bm");
-        nav.classList.remove("mode-4c");
-      } else if (modeVal == 67) {
-        nav.classList.add("mode-bm");
-        nav.classList.remove("mode-b");
-        nav.classList.remove("mode-bu");
-        nav.classList.remove("mode-4c");
-      } else if (modeVal == 68) {
-        nav.classList.add("mode-b");
-        nav.classList.remove("mode-bm");
-        nav.classList.remove("mode-bu");
-        nav.classList.remove("mode-4c");
+      var nav = document.getElementById("nav-container") || document.getElementById("send-nav-container");
+      if (nav) {
+        if (modeVal == 4) {
+          nav.classList.remove("mode-b");
+          nav.classList.add("mode-4c");
+          nav.classList.remove("mode-bm");
+          nav.classList.remove("mode-bu");
+        } else if (modeVal == 66) {
+          nav.classList.add("mode-bu");
+          nav.classList.remove("mode-b");
+          nav.classList.remove("mode-bm");
+          nav.classList.remove("mode-4c");
+        } else if (modeVal == 67) {
+          nav.classList.add("mode-bm");
+          nav.classList.remove("mode-b");
+          nav.classList.remove("mode-bu");
+          nav.classList.remove("mode-4c");
+        } else if (modeVal == 68) {
+          nav.classList.add("mode-b");
+          nav.classList.remove("mode-bm");
+          nav.classList.remove("mode-bu");
+          nav.classList.remove("mode-4c");
+        } else {
+          nav.classList.remove("mode-b");
+          nav.classList.remove("mode-bm");
+          nav.classList.remove("mode-bu");
+          nav.classList.remove("mode-4c");
+        }
+      }
+
+      // Sync preset state
+      if (mode_str === "4C" && Main._currentFPS == 8) {
+        Main.updatePresetUI('robust');
+      } else if (mode_str === "Bm" && (Main._currentFPS == 15 || !Main._currentFPS)) {
+        Main.updatePresetUI('std');
       } else {
-        nav.classList.remove("mode-b");
-        nav.classList.remove("mode-bm");
-        nav.classList.remove("mode-bu");
-        nav.classList.remove("mode-4c");
+        Main.updatePresetUI('custom');
       }
     },
 
@@ -725,11 +764,32 @@ var Main = function () {
       if (!val) {
         return;
       }
+      val = parseInt(val, 10);
+      Main._currentFPS = val;
+
+      var fpsValEl = document.getElementById("fps-val") || document.getElementById("send-fps-val");
+      if (fpsValEl) {
+        fpsValEl.innerHTML = val + " FPS";
+      }
+      var fpsRangeEl = document.getElementById("fps-range") || document.getElementById("send-fps-range");
+      if (fpsRangeEl && fpsRangeEl.value != val) {
+        fpsRangeEl.value = val;
+      }
+
       if (_ww) {
         _ww.postMessage({ fun: 'setFPS', args: [val] });
       }
       else {
         Send.setFPS(val);
+      }
+
+      // Sync preset state
+      if (Main._currentModeStr === "4C" && val == 8) {
+        Main.updatePresetUI('robust');
+      } else if (Main._currentModeStr === "Bm" && val == 15) {
+        Main.updatePresetUI('std');
+      } else {
+        Main.updatePresetUI('custom');
       }
     },
 

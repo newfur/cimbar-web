@@ -199,8 +199,12 @@ var Send = function () {
 
     setMode: function (mode_val) {
       // call resize after this from Main?
-      Module._cimbare_configure(mode_val, -1);
-      Report.setAspectRatio(Module._cimbare_get_aspect_ratio());
+      if (typeof Module !== 'undefined' && typeof Module._cimbare_configure === 'function') {
+        Module._cimbare_configure(mode_val, -1);
+        if (typeof Module._cimbare_get_aspect_ratio === 'function') {
+          Report.setAspectRatio(Module._cimbare_get_aspect_ratio());
+        }
+      }
     },
 
     setFPS: function (val) {
