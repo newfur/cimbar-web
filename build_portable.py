@@ -450,7 +450,7 @@ def main():
         onRuntimeInitialized: () => {{
           console.log("Main thread WASM loaded.");
           Main.init(canvas);
-          Main.setMode('Bm');
+          Main.setMode('B');
           Main.togglePause(true); // Start paused until entered
         }}
       }};

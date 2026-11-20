@@ -75,7 +75,7 @@ const i18nDict = {
         "send_qr_fs_hint": "Click anywhere or press ESC to exit fullscreen",
 
         "send_preset": "Preset Profile",
-        "send_preset_std": "Standard (Bm · 15 FPS)",
+        "send_preset_std": "Max Speed (B · 15 FPS · ~110 KB/s)",
         "send_preset_robust": "Robust Mode (4C · 8 FPS)",
         "send_preset_robust_badge": "PC Camera Friendly",
         "send_preset_robust_desc": "Optimized for poor PC webcams: large 4C blocks + 8 FPS to eliminate glare, defocus, and motion blur.",
@@ -173,7 +173,7 @@ const i18nDict = {
         "send_qr_fs_hint": "点击任意位置或按 ESC 退出全屏",
 
         "send_preset": "预设场景",
-        "send_preset_std": "常规高速 (Bm · 15 FPS)",
+        "send_preset_std": "常规极速 (B · 15 FPS · ~110 KB/s)",
         "send_preset_robust": "强容错模式 (4C · 8 FPS)",
         "send_preset_robust_badge": "电脑镜头友好",
         "send_preset_robust_desc": "专为低素质电脑摄像头优化：大色块 4C + 8 FPS 低帧率，大幅降低手机屏幕自发光、虚焦与拖影干扰。",

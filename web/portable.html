@@ -3096,7 +3096,7 @@
   <input style="display:none;" type="file" name="file_input" id="file_input" onchange="Main.fileInput(this);" />
 
   <!-- Styled Settings Drawer -->
-  <div id="send-nav-container" class="mode-bm">
+  <div id="send-nav-container" class="mode-b">
     <div class="bg" onclick="Main.blurNav();"></div>
     <div id="send-nav-content" tabindex="-1">
       <span id="send-current-file" data-i18n="send_no_file">未选择任何文件</span>
@@ -3113,7 +3113,7 @@
           <div class="preset-cards">
             <div id="preset-std" class="preset-card active" onclick="Main.applyPreset('std')">
               <div class="preset-header">
-                <span class="preset-title" data-i18n="send_preset_std">常规高速 (Bm · 15 FPS)</span>
+                <span class="preset-title" data-i18n="send_preset_std">常规极速 (B · 15 FPS · ~110 KB/s)</span>
               </div>
             </div>
             <div id="preset-robust" class="preset-card" onclick="Main.applyPreset('robust')">
@@ -13974,7 +13974,7 @@ self.onmessage = async (event) => {
         onRuntimeInitialized: () => {
           console.log("Main thread WASM loaded.");
           Main.init(canvas);
-          Main.setMode('Bm');
+          Main.setMode('B');
           Main.togglePause(true); // Start paused until entered
         }
       };
@@ -14075,7 +14075,7 @@ const i18nDict = {
         "send_qr_fs_hint": "Click anywhere or press ESC to exit fullscreen",
 
         "send_preset": "Preset Profile",
-        "send_preset_std": "Standard (Bm · 15 FPS)",
+        "send_preset_std": "Max Speed (B · 15 FPS · ~110 KB/s)",
         "send_preset_robust": "Robust Mode (4C · 8 FPS)",
         "send_preset_robust_badge": "PC Camera Friendly",
         "send_preset_robust_desc": "Optimized for poor PC webcams: large 4C blocks + 8 FPS to eliminate glare, defocus, and motion blur.",
@@ -14173,7 +14173,7 @@ const i18nDict = {
         "send_qr_fs_hint": "点击任意位置或按 ESC 退出全屏",
 
         "send_preset": "预设场景",
-        "send_preset_std": "常规高速 (Bm · 15 FPS)",
+        "send_preset_std": "常规极速 (B · 15 FPS · ~110 KB/s)",
         "send_preset_robust": "强容错模式 (4C · 8 FPS)",
         "send_preset_robust_badge": "电脑镜头友好",
         "send_preset_robust_desc": "专为低素质电脑摄像头优化：大色块 4C + 8 FPS 低帧率，大幅降低手机屏幕自发光、虚焦与拖影干扰。",
@@ -15021,7 +15021,7 @@ var Main = function () {
       if (!_ww) { // no webworker, use main thread
         console.log("main thread impl");
         Send.init_window(canvas);
-        Main.setMode('Bm');
+        Main.setMode('B');
         Send.nextFrame();
         return;
       }
@@ -15055,7 +15055,7 @@ var Main = function () {
         return;
       }
 
-      Main.setMode('Bm');
+      Main.setMode('B');
       _ww.postMessage({ fun: 'nextFrame', args: [] });
     },
 
@@ -15233,7 +15233,7 @@ var Main = function () {
         Main.setMode('4C');
         Main.setFPS(8);
       } else {
-        Main.setMode('Bm');
+        Main.setMode('B');
         Main.setFPS(15);
       }
       Main.updatePresetUI(preset);
@@ -15310,7 +15310,7 @@ var Main = function () {
       // Sync preset state
       if (mode_str === "4C" && Main._currentFPS == 8) {
         Main.updatePresetUI('robust');
-      } else if (mode_str === "Bm" && (Main._currentFPS == 15 || !Main._currentFPS)) {
+      } else if (mode_str === "B" && (Main._currentFPS == 15 || !Main._currentFPS)) {
         Main.updatePresetUI('std');
       } else {
         Main.updatePresetUI('custom');
@@ -15343,7 +15343,7 @@ var Main = function () {
       // Sync preset state
       if (Main._currentModeStr === "4C" && val == 8) {
         Main.updatePresetUI('robust');
-      } else if (Main._currentModeStr === "Bm" && val == 15) {
+      } else if (Main._currentModeStr === "B" && val == 15) {
         Main.updatePresetUI('std');
       } else {
         Main.updatePresetUI('custom');

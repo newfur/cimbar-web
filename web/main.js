@@ -464,7 +464,7 @@ var Main = function () {
       if (!_ww) { // no webworker, use main thread
         console.log("main thread impl");
         Send.init_window(canvas);
-        Main.setMode('Bm');
+        Main.setMode('B');
         Send.nextFrame();
         return;
       }
@@ -498,7 +498,7 @@ var Main = function () {
         return;
       }
 
-      Main.setMode('Bm');
+      Main.setMode('B');
       _ww.postMessage({ fun: 'nextFrame', args: [] });
     },
 
@@ -676,7 +676,7 @@ var Main = function () {
         Main.setMode('4C');
         Main.setFPS(8);
       } else {
-        Main.setMode('Bm');
+        Main.setMode('B');
         Main.setFPS(15);
       }
       Main.updatePresetUI(preset);
@@ -753,7 +753,7 @@ var Main = function () {
       // Sync preset state
       if (mode_str === "4C" && Main._currentFPS == 8) {
         Main.updatePresetUI('robust');
-      } else if (mode_str === "Bm" && (Main._currentFPS == 15 || !Main._currentFPS)) {
+      } else if (mode_str === "B" && (Main._currentFPS == 15 || !Main._currentFPS)) {
         Main.updatePresetUI('std');
       } else {
         Main.updatePresetUI('custom');
@@ -786,7 +786,7 @@ var Main = function () {
       // Sync preset state
       if (Main._currentModeStr === "4C" && val == 8) {
         Main.updatePresetUI('robust');
-      } else if (Main._currentModeStr === "Bm" && val == 15) {
+      } else if (Main._currentModeStr === "B" && val == 15) {
         Main.updatePresetUI('std');
       } else {
         Main.updatePresetUI('custom');
