@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
 
         // Append custom app identifier to user agent
-        String customUa = settings.getUserAgentString() + " CimbarApp/1.1.0";
+        String customUa = settings.getUserAgentString() + " CimbarApp/1.1.1";
         settings.setUserAgentString(customUa);
 
         // Setup WebViewAssetLoader for secure origin (https://appassets.androidplatform.net/)

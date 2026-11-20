@@ -58,9 +58,9 @@ jobs:
           APK_DIR="android/app/build/outputs/apk/release"
           APK_FILE=$(ls $APK_DIR/*.apk | head -n 1)
           echo "Found APK: $APK_FILE"
-          TAG_OR_VER="${GITHUB_REF_NAME:-v1.1.0}"
+          TAG_OR_VER="${GITHUB_REF_NAME:-v1.1.1}"
           if [[ ! "$TAG_OR_VER" =~ ^v ]]; then
-            TAG_OR_VER="v1.1.0"
+            TAG_OR_VER="v1.1.1"
           fi
           TARGET_NAME="Cimbar-Transfer-${TAG_OR_VER}.apk"
           cp "$APK_FILE" "$TARGET_NAME"
