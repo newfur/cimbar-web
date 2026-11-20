@@ -830,6 +830,10 @@ var Recv = function () {
     },
 
     update_mode_ui: function (modeStr) {
+      const summaryEl = document.getElementById('hud-summary-mode');
+      if (summaryEl) {
+        summaryEl.textContent = modeStr;
+      }
       const hudButtons = document.querySelectorAll('#hud-mode-capsules .hud-btn');
       hudButtons.forEach(btn => {
         if (btn.getAttribute('data-mode') === modeStr) {
@@ -846,6 +850,26 @@ var Recv = function () {
           btn.classList.remove('active');
         }
       });
+    },
+
+    toggleMobilePill: function (group, event) {
+      if (event) {
+        event.stopPropagation();
+      }
+      const pop = document.getElementById('hud-popover-' + group);
+      const btn = document.getElementById('hud-summary-btn-' + group);
+      if (!pop) return;
+      const wasOpen = pop.classList.contains('open');
+      Recv.closeMobilePills();
+      if (!wasOpen) {
+        pop.classList.add('open');
+        if (btn) btn.classList.add('active');
+      }
+    },
+
+    closeMobilePills: function () {
+      document.querySelectorAll('.hud-popover.open').forEach(el => el.classList.remove('open'));
+      document.querySelectorAll('.hud-summary-btn.active').forEach(el => el.classList.remove('active'));
     },
 
     check_qr_frame: function (now) {
@@ -1158,6 +1182,14 @@ var Recv = function () {
     },
 
     update_hud_ui: function () {
+      const summaryZoom = document.getElementById('hud-summary-zoom');
+      if (summaryZoom) {
+        summaryZoom.textContent = _currentZoom + 'x';
+      }
+      const summaryExp = document.getElementById('hud-summary-exp');
+      if (summaryExp) {
+        summaryExp.textContent = (_currentExposure === 0) ? '0.0' : (_currentExposure === -1 ? '-1.0' : '-2.0');
+      }
       document.querySelectorAll('[data-zoom]').forEach(el => {
         const z = parseFloat(el.getAttribute('data-zoom'));
         if (Math.abs(z - _currentZoom) < 0.05) {
