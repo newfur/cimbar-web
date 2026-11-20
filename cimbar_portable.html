@@ -2096,9 +2096,9 @@
       width: 40px;
       height: 40px;
       z-index: 10;
-      border: 4px solid rgba(255, 255, 255, 0.5);
-      box-shadow: 0 0 15px rgba(124, 58, 237, 0.1);
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border: 4px solid rgba(255, 255, 255, 0.45);
+      box-shadow: 0 0 10px rgba(124, 58, 237, 0.1);
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
     }
 
     /* Top Right Corner */
@@ -2120,14 +2120,12 @@
     /* Scanner states */
     .crosshairs.scanning_xhairs {
       border-color: var(--accent-yellow) !important;
-      box-shadow: 0 0 20px rgba(217, 119, 6, 0.6);
-      transform: scale(1.1);
+      box-shadow: 0 0 12px rgba(217, 119, 6, 0.45);
     }
 
     .crosshairs.active_xhairs {
       border-color: var(--accent-green) !important;
-      box-shadow: 0 0 25px rgba(16, 185, 129, 0.8);
-      transform: scale(1.15);
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.5);
     }
 
     /* Top menu floating panels */
@@ -3427,6 +3425,7 @@
           </div>
         </li>
         <hr>
+        <li><a href="javascript:void(0)" onclick="Recv.toggleQRMode()"><span id="menu-qr-toggle-icon">✅</span> <span data-i18n="recv_qr_auto_detect">普通二维码自动识别</span></a></li>
         <li><a href="javascript:void(0)" onclick="Recv.toggleDebugPanel()" data-i18n="recv_toggle_debug">切换调试面板</a></li>
         <li><a href="javascript:void(0)" onclick="Recv.toggleFullscreen()" data-i18n="fullscreen">全屏接收模式</a></li>
         <li class="small" style="margin-top:auto; text-align:center; padding-top:1rem; border-top:1px solid var(--glass-border);">
@@ -15997,6 +15996,9 @@ var Recv = function () {
     init_video: function (video) {
       _video = video;
       window.addEventListener('resize', _updateCrosshairPositions);
+      if (video) {
+        video.addEventListener('loadedmetadata', _updateCrosshairPositions);
+      }
 
       // If camera is already actively running on this video element, do not re-request!
       if (_video && _video.srcObject && _video.srcObject.active) {
@@ -16055,6 +16057,7 @@ var Recv = function () {
         video.playsInline = true;
         video.setAttribute('playsinline', '');
         video.play().catch(e => console.warn('video.play() rejected:', e));
+        setTimeout(_updateCrosshairPositions, 100);
         _requestVideoFrame(Recv.on_frame);
 
         // Optimize focus and sharpness constraints on active stream track
@@ -16427,8 +16430,6 @@ var Recv = function () {
     },
 
     update_visual_state: function () {
-      _updateCrosshairPositions();
-
       var xh1 = document.getElementById("crosshair1");
       var xh2 = document.getElementById("crosshair2");
       if (_recentDecode > 0 && _recentDecode + 30 > _counter) {
@@ -16607,7 +16608,20 @@ var Recv = function () {
       if (!_qrScanningEnabled || _qrModalOpen || !_video || _video.readyState < 2) {
         return;
       }
-      if (now - _lastQRScanTime < 250 || now < _qrCooldownUntil) {
+      // If user explicitly selected a Cimbar dynamic mode (Bu, Bm, B, 4C), do not check static QR
+      if (_userMode !== 0) {
+        return;
+      }
+      // If Cimbar is currently decoding dynamic barcodes or receiving packets, suppress QR scanning
+      if (_recentDecode > 0 && (_counter - _recentDecode < 90)) {
+        return;
+      }
+      // If file reassembly or fountain decode is in progress, suppress QR scanning
+      if (typeof _isReassembling !== 'undefined' && _isReassembling) {
+        return;
+      }
+      // Throttle QR checking to 750ms (avoid frequent GPU texture locks / interruptions)
+      if (now - _lastQRScanTime < 750 || now < _qrCooldownUntil) {
         return;
       }
       _lastQRScanTime = now;
@@ -16621,23 +16635,25 @@ var Recv = function () {
       try {
         let resultText = null;
 
+        // Use native hardware BarcodeDetector if available
         if (_barcodeDetector) {
           try {
             const barcodes = await _barcodeDetector.detect(_video);
             if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
               resultText = barcodes[0].rawValue;
             }
-          } catch (e) { }
-        }
-
-        if (!resultText && typeof jsQR !== 'undefined') {
+          } catch (e) {
+            _barcodeDetector = null; // fallback to jsQR if BarcodeDetector fails
+          }
+        } else if (typeof jsQR !== 'undefined') {
+          // Fallback to jsQR ONLY when BarcodeDetector is not available
           if (!_qrCanvas) {
             _qrCanvas = document.createElement('canvas');
             _qrCtx = _qrCanvas.getContext('2d', { willReadFrequently: true });
           }
           const vw = _video.videoWidth || 640;
           const vh = _video.videoHeight || 480;
-          const targetW = Math.min(vw, 480);
+          const targetW = Math.min(vw, 400);
           const targetH = Math.round(targetW * (vh / vw));
 
           if (_qrCanvas.width !== targetW || _qrCanvas.height !== targetH) {
@@ -16851,6 +16867,15 @@ var Recv = function () {
     toggleQRScanning: function (enabled) {
       if (enabled === undefined) _qrScanningEnabled = !_qrScanningEnabled;
       else _qrScanningEnabled = !!enabled;
+      return _qrScanningEnabled;
+    },
+
+    toggleQRMode: function () {
+      _qrScanningEnabled = !_qrScanningEnabled;
+      const icon = document.getElementById('menu-qr-toggle-icon');
+      if (icon) {
+        icon.textContent = _qrScanningEnabled ? '✅' : '⬜';
+      }
       return _qrScanningEnabled;
     },
 
