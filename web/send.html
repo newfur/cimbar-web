@@ -66,6 +66,7 @@
     }
 
     html, body {
+      min-height: 100vh;
       min-height: 100dvh;
       overflow-x: hidden;
     }
@@ -85,6 +86,7 @@
 
     @media (min-width: 769px) and (min-height: 580px) {
       html, body {
+        height: 100vh;
         height: 100dvh;
         overflow: hidden;
       }
@@ -95,6 +97,7 @@
 
     @media (max-width: 768px), (max-height: 579px) {
       html, body {
+        min-height: 100vh;
         min-height: 100dvh;
         height: auto;
         overflow-y: auto;
@@ -351,6 +354,7 @@
     }
 
     #text-card {
+      --qr-card-size: clamp(220px, min(calc(46vw - 45px), calc(100vh - 290px)), 520px);
       --qr-card-size: clamp(220px, min(calc(46vw - 45px), calc(100dvh - 290px)), 520px);
       max-width: min(1360px, calc(2 * var(--qr-card-size) + var(--qr-card-gap) + 4 * var(--qr-card-pad-h)));
       width: 100%;

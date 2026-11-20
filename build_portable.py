@@ -289,6 +289,7 @@ def main():
     .view-container {{
       display: none !important;
       width: 100%;
+      min-height: 100vh;
       min-height: 100dvh;
       box-sizing: border-box;
     }}
@@ -316,6 +317,7 @@ def main():
 
     @media (min-width: 769px) and (min-height: 580px) {{
       html, body {{
+        height: 100vh !important;
         height: 100dvh !important;
         overflow: hidden !important;
       }}
@@ -323,11 +325,13 @@ def main():
         padding: 0 !important;
       }}
       #view-send.active {{
+        height: 100vh !important;
         height: 100dvh !important;
         overflow: hidden !important;
         padding: 20px 1rem 1rem 1rem !important;
       }}
       #view-hub.active {{
+        height: 100vh !important;
         height: 100dvh !important;
         overflow: hidden !important;
         justify-content: center !important;
@@ -337,6 +341,7 @@ def main():
 
     @media (max-width: 768px), (max-height: 579px) {{
       html, body {{
+        min-height: 100vh;
         min-height: 100dvh;
         height: auto;
         overflow-y: auto;
@@ -345,12 +350,14 @@ def main():
         padding: 0 !important;
       }}
       #view-send.active {{
+        min-height: 100vh;
         min-height: 100dvh;
         height: auto;
         overflow-y: auto;
         padding: max(1rem, env(safe-area-inset-top)) 1rem 2.5rem 1rem !important;
       }}
       #view-hub.active {{
+        min-height: 100vh;
         min-height: 100dvh;
         height: auto;
         overflow-y: auto;
@@ -505,14 +512,16 @@ def main():
       if (viewId === 'recv' || isTransmitting) {{
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
-        document.body.style.height = '100dvh';
-        document.documentElement.style.height = '100dvh';
+        document.body.style.height = '100vh';
+        document.documentElement.style.height = '100vh';
+        try {{ document.body.style.height = '100dvh'; document.documentElement.style.height = '100dvh'; }} catch(e){{}}
       }} else if (viewId === 'send' || viewId === 'hub') {{
         if (isDesktop) {{
           document.body.style.overflow = 'hidden';
           document.documentElement.style.overflow = 'hidden';
-          document.body.style.height = '100dvh';
-          document.documentElement.style.height = '100dvh';
+          document.body.style.height = '100vh';
+          document.documentElement.style.height = '100vh';
+          try {{ document.body.style.height = '100dvh'; document.documentElement.style.height = '100dvh'; }} catch(e){{}}
         }} else {{
           document.body.style.overflow = 'auto';
           document.documentElement.style.overflow = 'auto';
