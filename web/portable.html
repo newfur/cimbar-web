@@ -15867,6 +15867,7 @@ var Recv = function () {
   var _barcodeDetector = null;
   var _qrCanvas = null;
   var _qrCtx = null;
+  var _qrBackgroundTimer = null;
 
   // Initialize BarcodeDetector for native fast QR decoding if supported
   if ('BarcodeDetector' in window) {
@@ -15874,6 +15875,54 @@ var Recv = function () {
       _barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
     } catch (e) {
       _barcodeDetector = null;
+    }
+  }
+
+  function _scheduleNextQRScan(delay) {
+    if (_qrBackgroundTimer) {
+      clearTimeout(_qrBackgroundTimer);
+      _qrBackgroundTimer = null;
+    }
+    if (!_qrScanningEnabled) return;
+    _qrBackgroundTimer = setTimeout(_runQRScanBackground, typeof delay === 'number' ? delay : 800);
+  }
+
+  function _startQRBackgroundScanner() {
+    _scheduleNextQRScan(800);
+  }
+
+  async function _runQRScanBackground() {
+    _qrBackgroundTimer = null;
+    if (!_qrScanningEnabled || _qrModalOpen || !_video || _video.readyState < 2 || _video.paused || _video.ended) {
+      _scheduleNextQRScan(1000);
+      return;
+    }
+    // If user explicitly selected a Cimbar dynamic mode (Bu, Bm, B, 4C), do not check static QR
+    if (_userMode !== 0) {
+      _scheduleNextQRScan(1500);
+      return;
+    }
+    // If Cimbar is currently decoding dynamic barcodes or receiving packets, suppress QR scanning
+    if (_recentDecode > 0 && (_counter - _recentDecode < 90)) {
+      _scheduleNextQRScan(1500);
+      return;
+    }
+    // If file reassembly or fountain decode is in progress, suppress QR scanning
+    if (typeof _isReassembling !== 'undefined' && _isReassembling) {
+      _scheduleNextQRScan(1500);
+      return;
+    }
+    if (performance.now() < _qrCooldownUntil) {
+      _scheduleNextQRScan(1000);
+      return;
+    }
+
+    try {
+      await Recv.scan_qr_code();
+    } catch (e) {
+      console.warn("Background QR scan error:", e);
+    } finally {
+      _scheduleNextQRScan(800);
     }
   }
 
@@ -16003,6 +16052,7 @@ var Recv = function () {
       // If camera is already actively running on this video element, do not re-request!
       if (_video && _video.srcObject && _video.srcObject.active) {
         console.log("Camera is already active, reusing existing stream.");
+        _startQRBackgroundScanner();
         return;
       }
 
@@ -16059,6 +16109,7 @@ var Recv = function () {
         video.play().catch(e => console.warn('video.play() rejected:', e));
         setTimeout(_updateCrosshairPositions, 100);
         _requestVideoFrame(Recv.on_frame);
+        _startQRBackgroundScanner();
 
         // Optimize focus and sharpness constraints on active stream track
         const track = localMediaStream.getVideoTracks()[0];
@@ -16203,6 +16254,10 @@ var Recv = function () {
         clearInterval(_watchmanTimer);
         _watchmanTimer = 0;
       }
+      if (_qrBackgroundTimer) {
+        clearTimeout(_qrBackgroundTimer);
+        _qrBackgroundTimer = null;
+      }
     },
 
     watch_for_camera_pause: function () {
@@ -16346,7 +16401,6 @@ var Recv = function () {
 
       Recv.update_visual_state();
       Recv.watch_for_camera_pause();
-      Recv.check_qr_frame(now);
 
       const modeVals = [67, 68, 66, 129, 4];
 
@@ -16605,27 +16659,7 @@ var Recv = function () {
     },
 
     check_qr_frame: function (now) {
-      if (!_qrScanningEnabled || _qrModalOpen || !_video || _video.readyState < 2) {
-        return;
-      }
-      // If user explicitly selected a Cimbar dynamic mode (Bu, Bm, B, 4C), do not check static QR
-      if (_userMode !== 0) {
-        return;
-      }
-      // If Cimbar is currently decoding dynamic barcodes or receiving packets, suppress QR scanning
-      if (_recentDecode > 0 && (_counter - _recentDecode < 90)) {
-        return;
-      }
-      // If file reassembly or fountain decode is in progress, suppress QR scanning
-      if (typeof _isReassembling !== 'undefined' && _isReassembling) {
-        return;
-      }
-      // Throttle QR checking to 750ms (avoid frequent GPU texture locks / interruptions)
-      if (now - _lastQRScanTime < 750 || now < _qrCooldownUntil) {
-        return;
-      }
-      _lastQRScanTime = now;
-      Recv.scan_qr_code();
+      // Kept for backwards compatibility; QR scanning runs in background timer
     },
 
     scan_qr_code: async function () {
@@ -16635,39 +16669,73 @@ var Recv = function () {
       try {
         let resultText = null;
 
-        // Use native hardware BarcodeDetector if available
-        if (_barcodeDetector) {
+        // Use async createImageBitmap snapshot to avoid GPU texture stalls on the video element
+        if (typeof createImageBitmap === 'function') {
+          let bitmap = null;
+          try {
+            const vw = _video.videoWidth || 640;
+            const vh = _video.videoHeight || 480;
+            const targetW = Math.min(vw, 400);
+            const targetH = Math.round(targetW * (vh / vw));
+
+            bitmap = await createImageBitmap(_video, 0, 0, vw, vh, {
+              resizeWidth: targetW,
+              resizeHeight: targetH
+            }).catch(() => createImageBitmap(_video));
+
+            if (_barcodeDetector && bitmap) {
+              try {
+                const barcodes = await _barcodeDetector.detect(bitmap);
+                if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+                  resultText = barcodes[0].rawValue;
+                }
+              } catch (e) {
+                // BarcodeDetector on this browser might not support ImageBitmap; try video or fallback to jsQR
+                try {
+                  const b2 = await _barcodeDetector.detect(_video);
+                  if (b2 && b2.length > 0 && b2[0].rawValue) {
+                    resultText = b2[0].rawValue;
+                  }
+                } catch (err2) {
+                  _barcodeDetector = null;
+                }
+              }
+            }
+
+            if (!resultText && typeof jsQR !== 'undefined' && bitmap) {
+              if (!_qrCanvas) {
+                _qrCanvas = (typeof OffscreenCanvas !== 'undefined')
+                  ? new OffscreenCanvas(targetW, targetH)
+                  : document.createElement('canvas');
+                _qrCtx = _qrCanvas.getContext('2d', { willReadFrequently: true });
+              }
+              if (_qrCanvas.width !== targetW || _qrCanvas.height !== targetH) {
+                _qrCanvas.width = targetW;
+                _qrCanvas.height = targetH;
+              }
+
+              _qrCtx.drawImage(bitmap, 0, 0, targetW, targetH);
+              const imgData = _qrCtx.getImageData(0, 0, targetW, targetH);
+              const code = jsQR(imgData.data, targetW, targetH, {
+                inversionAttempts: "dontInvert"
+              });
+              if (code && code.data) {
+                resultText = code.data;
+              }
+            }
+          } finally {
+            if (bitmap && typeof bitmap.close === 'function') {
+              bitmap.close();
+            }
+          }
+        } else if (_barcodeDetector) {
           try {
             const barcodes = await _barcodeDetector.detect(_video);
             if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
               resultText = barcodes[0].rawValue;
             }
           } catch (e) {
-            _barcodeDetector = null; // fallback to jsQR if BarcodeDetector fails
-          }
-        } else if (typeof jsQR !== 'undefined') {
-          // Fallback to jsQR ONLY when BarcodeDetector is not available
-          if (!_qrCanvas) {
-            _qrCanvas = document.createElement('canvas');
-            _qrCtx = _qrCanvas.getContext('2d', { willReadFrequently: true });
-          }
-          const vw = _video.videoWidth || 640;
-          const vh = _video.videoHeight || 480;
-          const targetW = Math.min(vw, 400);
-          const targetH = Math.round(targetW * (vh / vw));
-
-          if (_qrCanvas.width !== targetW || _qrCanvas.height !== targetH) {
-            _qrCanvas.width = targetW;
-            _qrCanvas.height = targetH;
-          }
-
-          _qrCtx.drawImage(_video, 0, 0, targetW, targetH);
-          const imgData = _qrCtx.getImageData(0, 0, targetW, targetH);
-          const code = jsQR(imgData.data, targetW, targetH, {
-            inversionAttempts: "dontInvert"
-          });
-          if (code && code.data) {
-            resultText = code.data;
+            _barcodeDetector = null;
           }
         }
 
@@ -16690,12 +16758,7 @@ var Recv = function () {
         if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
       } catch (_) { }
 
-      var xh1 = document.getElementById("crosshair1");
-      var xh2 = document.getElementById("crosshair2");
-      if (xh1 && xh2) {
-        xh1.classList.add("active_xhairs");
-        xh2.classList.add("active_xhairs");
-      }
+      // Do NOT modify crosshairs or video elements - zero visual side effects on video preview
 
       var modal = document.getElementById('qr-result-modal');
       var contentBox = document.getElementById('qr-result-text');
@@ -16738,6 +16801,7 @@ var Recv = function () {
       _qrCooldownUntil = performance.now() + 1500;
       var modal = document.getElementById('qr-result-modal');
       if (modal) modal.classList.add('hidden');
+      _scheduleNextQRScan(1500);
     },
 
     openQRUrl: function () {
@@ -16867,6 +16931,12 @@ var Recv = function () {
     toggleQRScanning: function (enabled) {
       if (enabled === undefined) _qrScanningEnabled = !_qrScanningEnabled;
       else _qrScanningEnabled = !!enabled;
+      if (_qrScanningEnabled) {
+        _startQRBackgroundScanner();
+      } else if (_qrBackgroundTimer) {
+        clearTimeout(_qrBackgroundTimer);
+        _qrBackgroundTimer = null;
+      }
       return _qrScanningEnabled;
     },
 
@@ -16875,6 +16945,12 @@ var Recv = function () {
       const icon = document.getElementById('menu-qr-toggle-icon');
       if (icon) {
         icon.textContent = _qrScanningEnabled ? '✅' : '⬜';
+      }
+      if (_qrScanningEnabled) {
+        _startQRBackgroundScanner();
+      } else if (_qrBackgroundTimer) {
+        clearTimeout(_qrBackgroundTimer);
+        _qrBackgroundTimer = null;
       }
       return _qrScanningEnabled;
     },
