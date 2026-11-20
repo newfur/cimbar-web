@@ -14,6 +14,13 @@ This project is an independent Web port and UI enhancement based on the excellen
 *   **📱 Cross-Platform Compatibility**: Any device (PC, phone, tablet) supporting a modern web browser and camera can act as a sender or receiver.
 *   **📦 Single Portable File**: Provides a one-click build script to generate a `cimbar_portable.html` standalone file. Just carry this single ~2MB file to use it anytime, anywhere on offline devices.
 
+## 🌐 Browser Compatibility
+
+| Mode | Runtime Requirements | Recommended Browsers | Notes |
+| :--- | :--- | :--- | :--- |
+| **Dynamic Color Barcode**<br>(Cimbar Stream) | • WebAssembly (BigInt/i64)<br>• WebGL 2 / Canvas Acceleration | • **Chrome / Edge** ≥ 85<br>• **Firefox** ≥ 78<br>• **Safari** ≥ 15.0 | Relies on WebAssembly JS-BigInt integration. Older browsers (such as Chrome 83) lack kernel support for WASM i64 parameter mapping and cannot initialize the streaming engine. |
+| **Static Standard QR Code**<br>(Text / URL Transfer) | • Pure Client-Side JavaScript (ES5/ES6) | • Universal Compatibility<br>(Supports Chrome 83, legacy enterprise intranet browsers, etc.) | Holds up to 2,953 bytes per QR code (~1,000–2,000 chars), scannable by any mobile camera or WeChat scanner. Ideal for passwords, tokens, configs, and commands. |
+
 ## 🛠️ Project Structure & Dependencies
 
 Cimbar-Web is an independent UI and browser project. The underlying image extraction, computer vision, and core encoding/decoding algorithms (C++) are depended upon as a Git Submodule from the upstream repository:
