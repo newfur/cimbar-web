@@ -76,9 +76,9 @@ const i18nDict = {
 
         "send_preset": "Preset Profile",
         "send_preset_std": "Max Speed (B · 15 FPS · ~110 KB/s)",
-        "send_preset_robust": "Robust Mode (4C · 8 FPS)",
+        "send_preset_robust": "Robust Mode (Bu · 8 FPS)",
         "send_preset_robust_badge": "PC Camera Friendly",
-        "send_preset_robust_desc": "Optimized for poor PC webcams: large 4C blocks + 8 FPS to eliminate glare, defocus, and motion blur.",
+        "send_preset_robust_desc": "Optimized for poor PC webcams: sparse large-cell Bu matrix + 8 FPS to maximize recognition on low-resolution fixed-focus cameras.",
         "recv_cam_controls": "Camera Enhancement",
         "recv_zoom": "Zoom",
         "recv_exposure": "Anti-Glare / Exposure",
@@ -174,9 +174,9 @@ const i18nDict = {
 
         "send_preset": "预设场景",
         "send_preset_std": "常规极速 (B · 15 FPS · ~110 KB/s)",
-        "send_preset_robust": "强容错模式 (4C · 8 FPS)",
+        "send_preset_robust": "强容错模式 (Bu · 8 FPS)",
         "send_preset_robust_badge": "电脑镜头友好",
-        "send_preset_robust_desc": "专为低素质电脑摄像头优化：大色块 4C + 8 FPS 低帧率，大幅降低手机屏幕自发光、虚焦与拖影干扰。",
+        "send_preset_robust_desc": "专为低素质电脑摄像头优化：大方块 Bu 稀疏矩阵 + 8 FPS 低帧率，大幅提升低分辨率定焦镜头的识别成功率。",
         "recv_cam_controls": "镜头与画质增强",
         "recv_zoom": "变焦放大",
         "recv_exposure": "防过曝压光",

@@ -673,7 +673,7 @@ var Main = function () {
 
     applyPreset: function (preset) {
       if (preset === 'robust') {
-        Main.setMode('4C');
+        Main.setMode('Bu');
         Main.setFPS(8);
       } else {
         Main.setMode('B');
@@ -751,7 +751,7 @@ var Main = function () {
       }
 
       // Sync preset state
-      if (mode_str === "4C" && Main._currentFPS == 8) {
+      if (mode_str === "Bu" && Main._currentFPS == 8) {
         Main.updatePresetUI('robust');
       } else if (mode_str === "B" && (Main._currentFPS == 15 || !Main._currentFPS)) {
         Main.updatePresetUI('std');
@@ -784,7 +784,7 @@ var Main = function () {
       }
 
       // Sync preset state
-      if (Main._currentModeStr === "4C" && val == 8) {
+      if (Main._currentModeStr === "Bu" && val == 8) {
         Main.updatePresetUI('robust');
       } else if (Main._currentModeStr === "B" && val == 15) {
         Main.updatePresetUI('std');
